@@ -194,7 +194,7 @@ terraform destroy
 ```
 
 ## Architecture Diagram
-Picture goes here
+![Diagram](images/oci_network_diagram.png)
 
 
 **Warning:** ADB-S destruction is permanent. Ensure backups exist before destroying.
