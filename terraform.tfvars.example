@@ -1,0 +1,72 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  terraform.tfvars.example                                                  ║
+# ║  Copy to terraform.tfvars and fill in your values.                         ║
+# ║  NEVER commit terraform.tfvars to version control.                         ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+# ─── Provider / Tenancy ───────────────────────────────────────────────────────
+
+tenancy_ocid     = "ocid1.tenancy.oc1..aaaa..."
+user_ocid        = "ocid1.user.oc1..aaaa..."
+fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+private_key_path = "~/.oci/oci_api_key.pem"
+region           = "us-ashburn-1"
+
+# ─── Compartments ─────────────────────────────────────────────────────────────
+
+poc_compartment_ocid = "ocid1.compartment.oc1..aaaa..."
+dev_compartment_ocid = "ocid1.compartment.oc1..aaaa..."
+
+# ─── Network CIDRs (defaults shown — override if needed) ─────────────────────
+
+# poc_vcn_cidr        = "10.0.0.0/16"
+# dev_vcn_cidr        = "10.1.0.0/16"
+# adb_subnet_cidr     = "10.0.1.0/24"
+# oac_pac_subnet_cidr = "10.0.2.0/24"
+# dev_db_subnet_cidr  = "10.1.1.0/24"
+
+# ─── ADB-S ────────────────────────────────────────────────────────────────────
+
+adb_display_name            = "pocadb"
+adb_db_name                 = "pocadb"
+adb_admin_password          = "YourStr0ng#Password1"  # min 12 chars
+adb_cpu_core_count          = 2
+adb_data_storage_size_in_gb = 20
+adb_workload                = "OLAP"           # OLAP = ADW, OLTP = ATP
+adb_license_model           = "LICENSE_INCLUDED"
+adb_is_mtls_required        = true             # true = port 1522, false = 1521
+
+# ─── OAC ──────────────────────────────────────────────────────────────────────
+
+oac_display_name      = "poc-oac"
+oac_capacity_value    = 2
+oac_feature_set       = "ENTERPRISE_ANALYTICS"
+oac_license_type      = "LICENSE_INCLUDED"
+oac_idcs_access_token = "eyJ..."  # Generate via IDCS REST API or OCI Console
+
+# ─── Dev DBCS ─────────────────────────────────────────────────────────────────
+
+dbcs_display_name   = "dev-dbcs"
+dbcs_shape          = "VM.Standard.E4.Flex"
+dbcs_cpu_core_count = 2
+dbcs_db_edition     = "ENTERPRISE_EDITION"
+dbcs_admin_password = "YourStr0ng#Password2"
+dbcs_db_name        = "devdb"
+dbcs_db_version     = "19.0.0.0"
+dbcs_storage_size_in_gb = 256
+dbcs_node_count     = 1
+dbcs_license_model  = "LICENSE_INCLUDED"
+
+ssh_public_key = "ssh-rsa AAAA... user@host"
+
+# ─── IAM ──────────────────────────────────────────────────────────────────────
+
+analytics_admin_group_name = "AnalyticsAdmins"
+
+# ─── Tags ─────────────────────────────────────────────────────────────────────
+
+freeform_tags = {
+  Environment = "POC"
+  Project     = "OAC-ADB-Private-Endpoint"
+  ManagedBy   = "Terraform"
+}

@@ -1,0 +1,12 @@
+variable "poc_compartment_ocid" { type = string }
+variable "oac_display_name" { type = string }
+variable "oac_capacity_type" { type = string }
+variable "oac_capacity_value" { type = number }
+variable "oac_feature_set" { type = string }
+variable "oac_license_type" { type = string }
+variable "oac_idcs_access_token" { type = string }
+variable "poc_vcn_id" { type = string }
+variable "oac_pac_subnet_id" { type = string }
+variable "nsg_oac_pac_id" { type = string }
+variable "region" { type = string }
+variable "freeform_tags" { type = map(string) }

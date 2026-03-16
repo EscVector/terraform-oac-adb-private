@@ -1,0 +1,11 @@
+variable "poc_compartment_ocid" { type = string }
+variable "dev_compartment_ocid" { type = string }
+variable "poc_vcn_cidr" { type = string }
+variable "poc_vcn_display_name" { type = string }
+variable "dev_vcn_cidr" { type = string }
+variable "dev_vcn_display_name" { type = string }
+variable "adb_subnet_cidr" { type = string }
+variable "oac_pac_subnet_cidr" { type = string }
+variable "dev_db_subnet_cidr" { type = string }
+variable "adb_listener_port" { type = number }
+variable "freeform_tags" { type = map(string) }
