@@ -193,6 +193,10 @@ To enable direct OAC → Dev DBCS connectivity across the LPG:
 terraform destroy
 ```
 
+## Architecture Diagram
+Picture goes here
+
+
 **Warning:** ADB-S destruction is permanent. Ensure backups exist before destroying.
 
 ## References
