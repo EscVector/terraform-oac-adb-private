@@ -149,7 +149,14 @@ terraform-oac-adb-private/
     │   ├── variables.tf
     │   └── outputs.tf
     ├── networking/                 # VCNs, LPGs, subnets, security lists, NSGs, routes
-    │   ├── main.tf
+    │   ├── vcns.tf                # VCN definitions (POC + Dev)
+    │   ├── lpg.tf                 # Local Peering Gateways
+    │   ├── dhcp.tf                # DHCP options
+    │   ├── security_lists.tf      # Security lists (all VCNs)
+    │   ├── nsgs.tf                # Network Security Groups + rules
+    │   ├── service_gateway.tf     # Service Gateway (Dev VCN)
+    │   ├── route_tables.tf        # Route tables (all VCNs)
+    │   ├── subnets.tf             # Subnet definitions (all VCNs)
     │   ├── variables.tf
     │   └── outputs.tf
     └── compute/                   # Compute instances + SSH key + LPG validation
@@ -341,17 +348,17 @@ ssh -i ~/.ssh/compute.pem opc@<dev-private-ip>
 
 > **Important:** You must copy the private key onto the POC compute host to SSH to the Dev instance. The bastion cannot reach the Dev VCN directly — the connection must hop through the POC instance via the LPG peering.
 
-### Accessing ADB-S SQL Developer Web via the Bastion
+### Accessing ADB-S Database Actions via the Bastion
 
-The ADB-S private endpoint exposes SQL Developer Web over HTTPS (port 443). You can tunnel to it through the bastion without needing SSH access to a compute instance.
+The ADB-S private endpoint exposes Database Actions (SQL Developer Web) over HTTPS (port 443). You can tunnel to it through the bastion using port forwarding — no compute instance or Bastion plugin required.
 
-#### 1. Get the ADB private endpoint IP
+#### 1. Get the ADB private endpoint IP and URL
 
 ```cmd
 oci db autonomous-database get ^
   --autonomous-database-id <adb-ocid> ^
-  --query "data.\"private-endpoint-ip\"" ^
-  --raw-output
+  --query "data.{ip:\"private-endpoint-ip\", url:\"private-endpoint\"}" ^
+  --output table
 ```
 
 To list all ADBs in the POC compartment:
@@ -360,9 +367,11 @@ To list all ADBs in the POC compartment:
 for /f "tokens=*" %i in ('terraform output -raw poc_compartment_id') do ^
   oci db autonomous-database list ^
     --compartment-id %i ^
-    --query "data[].{name:\"display-name\", ip:\"private-endpoint-ip\", endpoint:\"private-endpoint\"}" ^
+    --query "data[].{name:\"display-name\", ip:\"private-endpoint-ip\", url:\"private-endpoint\"}" ^
     --output table
 ```
+
+Note the **private endpoint IP** (e.g. `192.168.0.18`) and the **private endpoint URL** (e.g. `kww3pqa7.adb.us-ashburn-1.oraclecloud.com`).
 
 #### 2. Create a port-forwarding session
 
@@ -377,16 +386,21 @@ for /f "tokens=*" %i in ('terraform output -raw bastion_id') do ^
     --wait-for-state SUCCEEDED
 ```
 
+Copy the **session OCID** (`ocid1.bastionsession.oc1.iad...`) from the output — you will need the exact value for the tunnel command.
+
 #### 3. Open the tunnel
 
-In a separate terminal:
+In a **separate terminal**:
 
 ```cmd
-ssh -i compute.pem -N -L 8443:<adb-private-endpoint-ip>:443 ^
-  -p 22 <session-ocid>@host.bastion.us-ashburn-1.oci.oraclecloud.com
+ssh -i compute.pem -N -L 8443:<adb-private-endpoint-ip>:443 -p 22 <session-ocid>@host.bastion.us-ashburn-1.oci.oraclecloud.com
 ```
 
-#### 4. Access SQL Developer Web
+The terminal will appear to hang with no output — this is normal. The tunnel is active as long as this window stays open.
+
+> **Important:** The `<session-ocid>` is the SSH username. It must be the full OCID exactly as shown in the session output. An incorrect session OCID will cause the connection to hang or refuse.
+
+#### 4. Access Database Actions
 
 Open your browser and navigate to:
 
@@ -394,51 +408,52 @@ Open your browser and navigate to:
 https://localhost:8443/ords/sql-developer
 ```
 
-#### Certificate warning workaround
+Your browser will show a certificate warning because the ADB certificate is issued for `*.adb.us-ashburn-1.oraclecloud.com`, not `localhost`. You can safely proceed past the warning.
 
-Your browser will show a certificate warning because the ADB certificate is issued for `*.adb.us-ashburn-1.oraclecloudapps.com`, not `localhost`. To avoid this, add a hosts file entry and tunnel on port 443 instead:
+#### Certificate warning workaround (optional)
+
+To avoid the certificate warning, add a hosts file entry so the ADB hostname resolves to localhost, and tunnel on port 443 instead of 8443.
 
 **Windows** — edit `C:\Windows\System32\drivers\etc\hosts` as Administrator:
 
 ```
-127.0.0.1  <adb-hostname>.adb.us-ashburn-1.oraclecloudapps.com
+127.0.0.1  <adb-hostname>.adb.us-ashburn-1.oraclecloud.com
 ```
 
 **Linux/macOS** — edit `/etc/hosts`:
 
 ```
-127.0.0.1  <adb-hostname>.adb.us-ashburn-1.oraclecloudapps.com
+127.0.0.1  <adb-hostname>.adb.us-ashburn-1.oraclecloud.com
 ```
 
-Then tunnel directly on port 443:
+Then tunnel on port 443:
 
 ```cmd
-ssh -i compute.pem -N -L 443:<adb-private-endpoint-ip>:443 ^
-  -p 22 <session-ocid>@host.bastion.us-ashburn-1.oci.oraclecloud.com
+ssh -i compute.pem -N -L 443:<adb-private-endpoint-ip>:443 -p 22 <session-ocid>@host.bastion.us-ashburn-1.oci.oraclecloud.com
 ```
 
 And browse to:
 
 ```
-https://<adb-hostname>.adb.us-ashburn-1.oraclecloudapps.com/ords/sql-developer
+https://<adb-hostname>.adb.us-ashburn-1.oraclecloud.com/ords/sql-developer
 ```
-
-> **Note:** The bastion must be in the same VCN as the ADB private endpoint (POC VCN) for this to work. The port-forwarding session targets the ADB private IP directly — no Bastion plugin or compute instance is involved.
 
 #### MobaXterm
 
-Use the same MobaSSHTunnel setup described above, but with these values:
+Use the MobaSSHTunnel setup described in the compute section above, with these values:
 
 | Field | Value |
 |-------|-------|
 | **Forwarded port** (local) | `8443` |
 | **SSH server** | `host.bastion.us-ashburn-1.oci.oraclecloud.com` |
-| **SSH login** | `<session-ocid>` |
+| **SSH login** | `<session-ocid>` (full `ocid1.bastionsession.oc1.iad...` string) |
 | **SSH port** | `22` |
-| **Remote server** | ADB private endpoint IP |
+| **Remote server** | ADB private endpoint IP (e.g. `192.168.0.18`) |
 | **Remote port** | `443` |
 
 Then open `https://localhost:8443/ords/sql-developer` in your browser.
+
+> **Note:** The bastion must be in the same VCN as the ADB private endpoint (POC VCN). Both the security list (`sl-adb-private`) and NSG (`nsg-adb-private`) must allow TCP 443 from the bastion's subnet (`poc-compute-sub`).
 
 ## Connectivity Validation
 

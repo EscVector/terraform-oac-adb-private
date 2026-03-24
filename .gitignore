@@ -27,3 +27,6 @@ Thumbs.db
 *.pub*
 *_pub*
 *.pem*
+
+*wallet*
+*WALLET*
