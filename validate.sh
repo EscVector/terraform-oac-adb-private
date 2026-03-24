@@ -83,10 +83,10 @@ if [[ "$ADB_OCID" != "MISSING" ]]; then
   ACL_CHECK=$(oci db autonomous-database get \
     --autonomous-database-id "$ADB_OCID" \
     --query 'data."whitelisted-ips"' --raw-output 2>/dev/null || echo "ERROR")
-  if [[ "$ACL_CHECK" == *"10.0.2.0"* ]]; then
-    check 4 "ADB-S ACL includes OAC PAC subnet (10.0.2.0/24)" "10.0.2.0" "$ACL_CHECK"
+  if [[ "$ACL_CHECK" == *"192.168.150.64"* ]]; then
+    check 4 "ADB-S ACL includes OAC PAC subnet (192.168.150.64/26)" "192.168.150.64" "$ACL_CHECK"
   else
-    echo -e "  [${FAIL}] #4: ADB-S ACL does NOT include 10.0.2.0/24 — got: ${ACL_CHECK}"
+    echo -e "  [${FAIL}] #4: ADB-S ACL does NOT include 192.168.150.64/26 — got: ${ACL_CHECK}"
     ((CHECKS_FAILED++))
   fi
 fi
@@ -102,19 +102,21 @@ fi
 
 # ─── Check 6: ADB-S Private IP in correct subnet ─────────────────────────────
 
-if [[ "$ADB_PE_IP" == 10.0.1.* ]]; then
-  check 6 "ADB-S private IP in adb subnet (10.0.1.0/24)" "10.0.1." "$ADB_PE_IP"
+if [[ "$ADB_PE_IP" == 192.168.150.* ]]; then
+  # ADB-S subnet is 192.168.150.0/26 (IPs .1 through .62)
+  check 6 "ADB-S private IP in adb subnet (192.168.150.0/26)" "192.168.150." "$ADB_PE_IP"
 else
-  echo -e "  [${FAIL}] #6: ADB-S private IP '${ADB_PE_IP}' not in 10.0.1.0/24"
+  echo -e "  [${FAIL}] #6: ADB-S private IP '${ADB_PE_IP}' not in 192.168.150.0/26"
   ((CHECKS_FAILED++))
 fi
 
 # ─── Check 7: PAC egress IP in correct subnet ────────────────────────────────
 
-if [[ "$PAC_IP" == 10.0.2.* ]]; then
-  check 7 "PAC egress IP in oac-pac-sub (10.0.2.0/24)" "10.0.2." "$PAC_IP"
+if [[ "$PAC_IP" == 192.168.150.* ]]; then
+  # PAC subnet is 192.168.150.64/26 (IPs .65 through .126)
+  check 7 "PAC egress IP in oac-pac-sub (192.168.150.64/26)" "192.168.150." "$PAC_IP"
 else
-  echo -e "  [${FAIL}] #7: PAC IP '${PAC_IP}' not in 10.0.2.0/24"
+  echo -e "  [${FAIL}] #7: PAC IP '${PAC_IP}' not in 192.168.150.64/26"
   ((CHECKS_FAILED++))
 fi
 

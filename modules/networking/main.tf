@@ -395,6 +395,176 @@ resource "oci_core_route_table" "dev_db" {
   }
 }
 
+# ─── POC VCN: Compute Subnet Route Table ────────────────────────────────────
+
+resource "oci_core_route_table" "poc_compute" {
+  compartment_id = var.poc_compartment_ocid
+  vcn_id         = oci_core_vcn.poc.id
+  display_name   = "rt-poc-compute"
+  freeform_tags  = var.freeform_tags
+
+  route_rules {
+    destination       = var.dev_vcn_cidr
+    destination_type  = "CIDR_BLOCK"
+    network_entity_id = oci_core_local_peering_gateway.poc_to_dev.id
+    description       = "Route to Dev VCN via LPG"
+  }
+}
+
+# ─── Dev VCN: Compute Subnet Route Table ───────────────────────────────────
+
+resource "oci_core_route_table" "dev_compute" {
+  compartment_id = var.dev_compartment_ocid
+  vcn_id         = oci_core_vcn.dev.id
+  display_name   = "rt-dev-compute"
+  freeform_tags  = var.freeform_tags
+
+  route_rules {
+    destination       = var.poc_vcn_cidr
+    destination_type  = "CIDR_BLOCK"
+    network_entity_id = oci_core_local_peering_gateway.dev_to_poc.id
+    description       = "Route to POC VCN via LPG"
+  }
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECURITY LISTS — Compute
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── sl-poc-compute: POC Compute Subnet ─────────────────────────────────────
+
+resource "oci_core_security_list" "poc_compute" {
+  compartment_id = var.poc_compartment_ocid
+  vcn_id         = oci_core_vcn.poc.id
+  display_name   = "sl-poc-compute"
+  freeform_tags  = var.freeform_tags
+
+  # Ingress: SSH from Dev VCN
+  ingress_security_rules {
+    source    = var.dev_vcn_cidr
+    protocol  = "6"
+    stateless = false
+    description = "SSH from Dev VCN via LPG"
+
+    tcp_options {
+      min = 22
+      max = 22
+    }
+  }
+
+  # Ingress: SSH within POC VCN
+  ingress_security_rules {
+    source    = var.poc_vcn_cidr
+    protocol  = "6"
+    stateless = false
+    description = "SSH within POC VCN"
+
+    tcp_options {
+      min = 22
+      max = 22
+    }
+  }
+
+  # Ingress: ICMP from Dev VCN (ping/traceroute)
+  ingress_security_rules {
+    source    = var.dev_vcn_cidr
+    protocol  = "1"
+    stateless = false
+    description = "ICMP from Dev VCN via LPG"
+  }
+
+  # Ingress: ICMP within POC VCN
+  ingress_security_rules {
+    source    = var.poc_vcn_cidr
+    protocol  = "1"
+    stateless = false
+    description = "ICMP within POC VCN"
+  }
+
+  # Egress: All to Dev VCN via LPG
+  egress_security_rules {
+    destination = var.dev_vcn_cidr
+    protocol    = "all"
+    stateless   = false
+    description = "All traffic to Dev VCN via LPG"
+  }
+
+  # Egress: All within POC VCN
+  egress_security_rules {
+    destination = var.poc_vcn_cidr
+    protocol    = "all"
+    stateless   = false
+    description = "All traffic within POC VCN"
+  }
+}
+
+# ─── sl-dev-compute: Dev Compute Subnet ─────────────────────────────────────
+
+resource "oci_core_security_list" "dev_compute" {
+  compartment_id = var.dev_compartment_ocid
+  vcn_id         = oci_core_vcn.dev.id
+  display_name   = "sl-dev-compute"
+  freeform_tags  = var.freeform_tags
+
+  # Ingress: SSH from POC VCN
+  ingress_security_rules {
+    source    = var.poc_vcn_cidr
+    protocol  = "6"
+    stateless = false
+    description = "SSH from POC VCN via LPG"
+
+    tcp_options {
+      min = 22
+      max = 22
+    }
+  }
+
+  # Ingress: SSH within Dev VCN
+  ingress_security_rules {
+    source    = var.dev_vcn_cidr
+    protocol  = "6"
+    stateless = false
+    description = "SSH within Dev VCN"
+
+    tcp_options {
+      min = 22
+      max = 22
+    }
+  }
+
+  # Ingress: ICMP from POC VCN (ping/traceroute)
+  ingress_security_rules {
+    source    = var.poc_vcn_cidr
+    protocol  = "1"
+    stateless = false
+    description = "ICMP from POC VCN via LPG"
+  }
+
+  # Ingress: ICMP within Dev VCN
+  ingress_security_rules {
+    source    = var.dev_vcn_cidr
+    protocol  = "1"
+    stateless = false
+    description = "ICMP within Dev VCN"
+  }
+
+  # Egress: All to POC VCN via LPG
+  egress_security_rules {
+    destination = var.poc_vcn_cidr
+    protocol    = "all"
+    stateless   = false
+    description = "All traffic to POC VCN via LPG"
+  }
+
+  # Egress: All within Dev VCN
+  egress_security_rules {
+    destination = var.dev_vcn_cidr
+    protocol    = "all"
+    stateless   = false
+    description = "All traffic within Dev VCN"
+  }
+}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SUBNETS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -426,6 +596,36 @@ resource "oci_core_subnet" "oac_pac" {
   route_table_id             = oci_core_route_table.poc_oac_pac.id
   security_list_ids          = [oci_core_security_list.oac_pac.id]
   dhcp_options_id            = oci_core_dhcp_options.poc_dhcp.id
+  freeform_tags              = var.freeform_tags
+}
+
+# ─── POC VCN: Compute Subnet ────────────────────────────────────────────────
+
+resource "oci_core_subnet" "poc_compute" {
+  compartment_id             = var.poc_compartment_ocid
+  vcn_id                     = oci_core_vcn.poc.id
+  cidr_block                 = var.poc_compute_subnet_cidr
+  display_name               = "poc-compute-sub"
+  dns_label                  = "poccompsub"
+  prohibit_public_ip_on_vnic = true
+  route_table_id             = oci_core_route_table.poc_compute.id
+  security_list_ids          = [oci_core_security_list.poc_compute.id]
+  dhcp_options_id            = oci_core_dhcp_options.poc_dhcp.id
+  freeform_tags              = var.freeform_tags
+}
+
+# ─── Dev VCN: Compute Subnet ───────────────────────────────────────────────
+
+resource "oci_core_subnet" "dev_compute" {
+  compartment_id             = var.dev_compartment_ocid
+  vcn_id                     = oci_core_vcn.dev.id
+  cidr_block                 = var.dev_compute_subnet_cidr
+  display_name               = "dev-compute-sub"
+  dns_label                  = "devcompsub"
+  prohibit_public_ip_on_vnic = true
+  route_table_id             = oci_core_route_table.dev_compute.id
+  security_list_ids          = [oci_core_security_list.dev_compute.id]
+  dhcp_options_id            = oci_core_dhcp_options.dev_dhcp.id
   freeform_tags              = var.freeform_tags
 }
 

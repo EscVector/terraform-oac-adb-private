@@ -1,0 +1,63 @@
+%%{ init: { 'theme': 'base', 'themeVariables': { 'primaryColor': '#312D5C', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4A4580', 'lineColor': '#F97316', 'secondaryColor': '#1E3A5F', 'tertiaryColor': '#0F4C3A' } } }%%
+
+graph TB
+    subgraph OCI["OCI Tenancy &mdash; us-ashburn-1"]
+        direction TB
+
+        subgraph POC_COMP["POC Compartment"]
+            subgraph POC_VCN["POC VCN &mdash; 192.168.150.0/24"]
+                direction TB
+
+                subgraph OAC_SUB["oac-pac-sub<br/>192.168.150.64/26"]
+                    OAC["OAC Private<br/>Access Channel"]
+                end
+
+                subgraph ADB_SUB["private-adb-sub<br/>192.168.150.0/26"]
+                    ADB["ADB-S Private<br/>Endpoint"]
+                end
+
+                subgraph POC_COMP_SUB["poc-compute-sub<br/>192.168.150.128/26"]
+                    POC_VM["poc-compute<br/>VM.Standard.E5.Flex<br/>1 OCPU / 16 GB"]
+                end
+
+                LPG_POC(["lpg-poc-to-dev"])
+            end
+        end
+
+        subgraph DEV_COMP["Dev Compartment"]
+            subgraph DEV_VCN["Dev VCN &mdash; 192.168.151.0/24"]
+                direction TB
+
+                LPG_DEV(["lpg-dev-to-poc"])
+
+                subgraph DEV_DB_SUB["dev-db-sub<br/>192.168.151.0/26"]
+                    DBCS["Dev DBCS<br/>Instance"]
+                end
+
+                subgraph DEV_COMP_SUB["dev-compute-sub<br/>192.168.151.64/26"]
+                    DEV_VM["dev-compute<br/>VM.Standard.E5.Flex<br/>1 OCPU / 16 GB"]
+                end
+            end
+        end
+    end
+
+    %% Traffic flows
+    OAC -->|"TCP 1522 mTLS<br/>TCP 443 HTTPS"| ADB
+    ADB -->|"TCP 1521<br/>DB Link via LPG"| LPG_POC
+    POC_VM <-->|"SSH 22 / ICMP<br/>via LPG"| LPG_POC
+    LPG_POC <====>|"LPG Peering<br/>PEERED"| LPG_DEV
+    LPG_DEV -->|"TCP 1521"| DBCS
+    LPG_DEV <-->|"SSH 22 / ICMP<br/>via LPG"| DEV_VM
+
+    %% Styling
+    classDef vcnStyle fill:#1a1a2e,stroke:#4A4580,stroke-width:2px,color:#fff
+    classDef subnetStyle fill:#16213e,stroke:#0F3460,stroke-width:1px,color:#ccc
+    classDef resourceStyle fill:#0F3460,stroke:#E94560,stroke-width:1px,color:#fff
+    classDef lpgStyle fill:#F97316,stroke:#EA580C,stroke-width:2px,color:#fff
+    classDef compartmentStyle fill:#0d1117,stroke:#30363d,stroke-width:2px,color:#ccc
+
+    class POC_VCN,DEV_VCN vcnStyle
+    class OAC_SUB,ADB_SUB,POC_COMP_SUB,DEV_DB_SUB,DEV_COMP_SUB subnetStyle
+    class OAC,ADB,POC_VM,DBCS,DEV_VM resourceStyle
+    class LPG_POC,LPG_DEV lpgStyle
+    class POC_COMP,DEV_COMP compartmentStyle

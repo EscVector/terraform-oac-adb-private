@@ -34,6 +34,14 @@ variable "region" {
   default     = "us-ashburn-1"
 }
 
+# ─── IAM ─────────────────────────────────────────────────────────────────────
+
+variable "admin_group_name" {
+  description = "Name of the IAM group to grant networking and compute policies"
+  type        = string
+  default     = "Administrators"
+}
+
 # ─── Compartments ─────────────────────────────────────────────────────────────
 
 variable "poc_compartment_ocid" {
@@ -51,7 +59,7 @@ variable "dev_compartment_ocid" {
 variable "poc_vcn_cidr" {
   description = "CIDR block for the POC VCN"
   type        = string
-  default     = "10.0.0.0/16"
+  default     = "192.168.150.0/24"
 }
 
 variable "poc_vcn_display_name" {
@@ -63,13 +71,13 @@ variable "poc_vcn_display_name" {
 variable "adb_subnet_cidr" {
   description = "CIDR block for the ADB-S private endpoint subnet"
   type        = string
-  default     = "10.0.1.0/24"
+  default     = "192.168.150.0/26"
 }
 
 variable "oac_pac_subnet_cidr" {
   description = "CIDR block for the OAC Private Access Channel subnet"
   type        = string
-  default     = "10.0.2.0/24"
+  default     = "192.168.150.64/26"
 }
 
 # ─── Dev VCN ──────────────────────────────────────────────────────────────────
@@ -77,7 +85,7 @@ variable "oac_pac_subnet_cidr" {
 variable "dev_vcn_cidr" {
   description = "CIDR block for the Dev VCN"
   type        = string
-  default     = "10.1.0.0/16"
+  default     = "192.168.151.0/24"
 }
 
 variable "dev_vcn_display_name" {
@@ -89,181 +97,54 @@ variable "dev_vcn_display_name" {
 variable "dev_db_subnet_cidr" {
   description = "CIDR block for the Dev DBCS subnet"
   type        = string
-  default     = "10.1.1.0/24"
+  default     = "192.168.151.0/26"
 }
 
-# ─── ADB-S Configuration ─────────────────────────────────────────────────────
+# ─── Compute Subnets ─────────────────────────────────────────────────────────
 
-variable "adb_display_name" {
-  description = "Display name for the Autonomous Database"
+variable "poc_compute_subnet_cidr" {
+  description = "CIDR block for the POC compute subnet"
   type        = string
-  default     = "pocadb"
+  default     = "192.168.150.128/26"
 }
 
-variable "adb_db_name" {
-  description = "Database name for the ADB-S (alphanumeric, max 14 chars)"
+variable "dev_compute_subnet_cidr" {
+  description = "CIDR block for the Dev compute subnet"
   type        = string
-  default     = "pocadb"
+  default     = "192.168.151.64/26"
 }
 
-variable "adb_admin_password" {
-  description = "ADMIN password for ADB-S (min 12 chars, 1 upper, 1 lower, 1 number)"
+# ─── Compute Instances ──────────────────────────────────────────────────────
+
+variable "instance_shape" {
+  description = "Compute shape for instances"
   type        = string
-  sensitive   = true
+  default     = "VM.Standard.E5.Flex"
 }
 
-variable "adb_cpu_core_count" {
-  description = "Number of ECPU cores for ADB-S"
+variable "instance_shape_ocpus" {
+  description = "Number of OCPUs for flex shape"
   type        = number
-  default     = 2
+  default     = 1
 }
 
-variable "adb_data_storage_size_in_gb" {
-  description = "Storage size in GB for ADB-S"
+variable "instance_shape_memory_in_gbs" {
+  description = "Memory in GBs for flex shape"
   type        = number
-  default     = 20
+  default     = 16
 }
 
-variable "adb_workload" {
-  description = "ADB-S workload type: OLAP (ADW) or OLTP (ATP)"
+variable "instance_image_ocid" {
+  description = "OCID of the compute image (Oracle Linux)"
   type        = string
-  default     = "OLAP"
-
-  validation {
-    condition     = contains(["OLAP", "OLTP"], var.adb_workload)
-    error_message = "adb_workload must be OLAP (ADW) or OLTP (ATP)."
-  }
 }
 
-variable "adb_license_model" {
-  description = "License model: LICENSE_INCLUDED or BRING_YOUR_OWN_LICENSE"
-  type        = string
-  default     = "LICENSE_INCLUDED"
-}
+# ─── ADB-S Listener ──────────────────────────────────────────────────────────
 
 variable "adb_is_mtls_required" {
   description = "Whether mTLS is required (true = port 1522, false = port 1521)"
   type        = bool
   default     = true
-}
-
-variable "adb_db_version" {
-  description = "Oracle Database version for ADB-S"
-  type        = string
-  default     = "19c"
-}
-
-# ─── OAC Configuration ───────────────────────────────────────────────────────
-
-variable "oac_display_name" {
-  description = "Display name for the OAC instance"
-  type        = string
-  default     = "poc-oac"
-}
-
-variable "oac_capacity_type" {
-  description = "OAC capacity type: OLPU_COUNT"
-  type        = string
-  default     = "OLPU_COUNT"
-}
-
-variable "oac_capacity_value" {
-  description = "Number of OLPUs for OAC"
-  type        = number
-  default     = 2
-}
-
-variable "oac_feature_set" {
-  description = "OAC feature set: ENTERPRISE_ANALYTICS or SELF_SERVICE_ANALYTICS"
-  type        = string
-  default     = "ENTERPRISE_ANALYTICS"
-}
-
-variable "oac_license_type" {
-  description = "OAC license type: LICENSE_INCLUDED or BRING_YOUR_OWN_LICENSE"
-  type        = string
-  default     = "LICENSE_INCLUDED"
-}
-
-variable "oac_idcs_access_token" {
-  description = "IDCS access token for OAC provisioning"
-  type        = string
-  sensitive   = true
-}
-
-# ─── Dev DBCS Configuration ──────────────────────────────────────────────────
-
-variable "dbcs_display_name" {
-  description = "Display name for the Dev DB System"
-  type        = string
-  default     = "dev-dbcs"
-}
-
-variable "dbcs_shape" {
-  description = "Compute shape for the DBCS instance"
-  type        = string
-  default     = "VM.Standard.E4.Flex"
-}
-
-variable "dbcs_cpu_core_count" {
-  description = "Number of CPU cores for the DBCS instance"
-  type        = number
-  default     = 2
-}
-
-variable "dbcs_db_edition" {
-  description = "Database edition: STANDARD_EDITION or ENTERPRISE_EDITION"
-  type        = string
-  default     = "ENTERPRISE_EDITION"
-}
-
-variable "dbcs_admin_password" {
-  description = "SYS/SYSTEM password for DBCS"
-  type        = string
-  sensitive   = true
-}
-
-variable "dbcs_db_name" {
-  description = "Database name for the DBCS (alphanumeric, max 8 chars)"
-  type        = string
-  default     = "devdb"
-}
-
-variable "dbcs_db_version" {
-  description = "Oracle Database version for DBCS"
-  type        = string
-  default     = "19.0.0.0"
-}
-
-variable "dbcs_storage_size_in_gb" {
-  description = "Data storage size in GB for DBCS"
-  type        = number
-  default     = 256
-}
-
-variable "dbcs_node_count" {
-  description = "Number of database nodes (1 for single, 2 for RAC)"
-  type        = number
-  default     = 1
-}
-
-variable "dbcs_license_model" {
-  description = "License model: LICENSE_INCLUDED or BRING_YOUR_OWN_LICENSE"
-  type        = string
-  default     = "LICENSE_INCLUDED"
-}
-
-variable "ssh_public_key" {
-  description = "SSH public key for DBCS node access"
-  type        = string
-}
-
-# ─── IAM ──────────────────────────────────────────────────────────────────────
-
-variable "analytics_admin_group_name" {
-  description = "Name of the IAM group for OAC administrators"
-  type        = string
-  default     = "AnalyticsAdmins"
 }
 
 # ─── Tags ─────────────────────────────────────────────────────────────────────

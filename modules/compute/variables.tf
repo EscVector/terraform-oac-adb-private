@@ -1,0 +1,12 @@
+variable "poc_compartment_ocid" { type = string }
+variable "dev_compartment_ocid" { type = string }
+variable "ad_name" { type = string }
+variable "poc_vcn_id" { type = string }
+variable "dev_vcn_id" { type = string }
+variable "poc_compute_subnet_id" { type = string }
+variable "dev_compute_subnet_id" { type = string }
+variable "instance_shape" { type = string }
+variable "instance_shape_ocpus" { type = number }
+variable "instance_shape_memory_in_gbs" { type = number }
+variable "instance_image_ocid" { type = string }
+variable "freeform_tags" { type = map(string) }

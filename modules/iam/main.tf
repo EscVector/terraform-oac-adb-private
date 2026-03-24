@@ -1,71 +1,54 @@
 # ╔══════════════════════════════════════════════════════════════════════════════╗
 # ║  IAM Module                                                                ║
-# ║  Required Policies for OAC PAC + ADB-S Private Endpoint                    ║
+# ║  Policies for networking, compute, and supporting services                 ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 
-# ─── Resolve compartment name for policy statements ───────────────────────────
-
-data "oci_identity_compartment" "poc" {
-  id = var.poc_compartment_ocid
-}
-
-locals {
-  poc_compartment_name = data.oci_identity_compartment.poc.name
-}
-
 # ═══════════════════════════════════════════════════════════════════════════════
-# OAC SERVICE POLICIES (Section 3.2 of the reference doc)
-# These are MANDATORY. Without them, PAC creation fails silently.
+# POC Compartment Policies
 # ═══════════════════════════════════════════════════════════════════════════════
 
-resource "oci_identity_policy" "analytics_service" {
+resource "oci_identity_policy" "poc_policies" {
   compartment_id = var.tenancy_ocid
-  name           = "oac-service-network-policy"
-  description    = "Allow OAC service to create and manage PAC VNICs in POC compartment"
+  name           = "poc-infra-policies"
+  description    = "Policies for POC compartment — networking and compute"
 
   statements = [
-    "allow service analytics to use virtual-network-family in compartment ${local.poc_compartment_name}",
-    "allow service analytics to manage vnics in compartment ${local.poc_compartment_name}",
-    "allow service analytics to use subnets in compartment ${local.poc_compartment_name}",
-    "allow service analytics to use network-security-groups in compartment ${local.poc_compartment_name}",
+    "Allow group ${var.admin_group_name} to manage virtual-network-family in compartment id ${var.poc_compartment_ocid}",
+    "Allow group ${var.admin_group_name} to manage instance-family in compartment id ${var.poc_compartment_ocid}",
+    "Allow group ${var.admin_group_name} to manage volume-family in compartment id ${var.poc_compartment_ocid}",
+    "Allow group ${var.admin_group_name} to inspect compartments in tenancy",
+    "Allow group ${var.admin_group_name} to read app-catalog-listing in tenancy",
   ]
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# OAC ADMIN GROUP POLICIES
-# Grants the AnalyticsAdmins group permission to manage OAC instances
-# and the underlying network resources needed for PAC.
+# Dev Compartment Policies
 # ═══════════════════════════════════════════════════════════════════════════════
 
-resource "oci_identity_policy" "analytics_admins" {
+resource "oci_identity_policy" "dev_policies" {
   compartment_id = var.tenancy_ocid
-  name           = "oac-admin-policy"
-  description    = "Allow AnalyticsAdmins to manage OAC and networking in POC compartment"
+  name           = "dev-infra-policies"
+  description    = "Policies for Dev compartment — networking and compute"
 
   statements = [
-    "allow group ${var.analytics_admin_group_name} to manage analytics-instances in compartment ${local.poc_compartment_name}",
-    "allow group ${var.analytics_admin_group_name} to manage virtual-network-family in compartment ${local.poc_compartment_name}",
-    "allow group ${var.analytics_admin_group_name} to read autonomous-database-family in compartment ${local.poc_compartment_name}",
-    "allow group ${var.analytics_admin_group_name} to use vnics in compartment ${local.poc_compartment_name}",
-    "allow group ${var.analytics_admin_group_name} to use subnets in compartment ${local.poc_compartment_name}",
-    "allow group ${var.analytics_admin_group_name} to use network-security-groups in compartment ${local.poc_compartment_name}",
+    "Allow group ${var.admin_group_name} to manage virtual-network-family in compartment id ${var.dev_compartment_ocid}",
+    "Allow group ${var.admin_group_name} to manage instance-family in compartment id ${var.dev_compartment_ocid}",
+    "Allow group ${var.admin_group_name} to manage volume-family in compartment id ${var.dev_compartment_ocid}",
   ]
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# AUTONOMOUS DATABASE POLICIES
-# Allows ADB-S to access VCN resources for private endpoint attachment.
+# Tenancy-level Policies (platform images, boot volumes)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-resource "oci_identity_policy" "adb_network" {
+resource "oci_identity_policy" "tenancy_policies" {
   compartment_id = var.tenancy_ocid
-  name           = "adb-private-endpoint-network-policy"
-  description    = "Allow ADB-S service to attach private endpoints in POC compartment"
+  name           = "infra-tenancy-policies"
+  description    = "Tenancy-level policies for compute image access"
 
   statements = [
-    "allow service database to use virtual-network-family in compartment ${local.poc_compartment_name}",
-    "allow service database to use vnics in compartment ${local.poc_compartment_name}",
-    "allow service database to use subnets in compartment ${local.poc_compartment_name}",
-    "allow service database to use network-security-groups in compartment ${local.poc_compartment_name}",
+    "Allow group ${var.admin_group_name} to read instance-images in tenancy",
+    "Allow group ${var.admin_group_name} to read instance-family in tenancy",
+    "Allow group ${var.admin_group_name} to use volume-family in tenancy",
   ]
 }

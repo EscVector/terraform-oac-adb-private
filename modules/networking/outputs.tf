@@ -5,6 +5,9 @@ output "adb_subnet_id" { value = oci_core_subnet.adb_private.id }
 output "oac_pac_subnet_id" { value = oci_core_subnet.oac_pac.id }
 output "dev_db_subnet_id" { value = oci_core_subnet.dev_db.id }
 
+output "poc_compute_subnet_id" { value = oci_core_subnet.poc_compute.id }
+output "dev_compute_subnet_id" { value = oci_core_subnet.dev_compute.id }
+
 output "nsg_adb_private_id" { value = oci_core_network_security_group.adb_private.id }
 output "nsg_oac_pac_id" { value = oci_core_network_security_group.oac_pac.id }
 

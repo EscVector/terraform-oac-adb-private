@@ -1,0 +1,88 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Outputs — Networking + Compute                                            ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+# ─── Networking ──────────────────────────────────────────────────────────────
+
+output "poc_vcn_id" {
+  description = "OCID of the POC VCN"
+  value       = module.networking.poc_vcn_id
+}
+
+output "dev_vcn_id" {
+  description = "OCID of the Dev VCN"
+  value       = module.networking.dev_vcn_id
+}
+
+output "lpg_peering_status" {
+  description = "LPG peering status (should be PEERED)"
+  value       = module.networking.lpg_peering_status
+}
+
+output "adb_subnet_id" {
+  description = "OCID of the ADB-S private endpoint subnet"
+  value       = module.networking.adb_subnet_id
+}
+
+output "oac_pac_subnet_id" {
+  description = "OCID of the OAC PAC subnet"
+  value       = module.networking.oac_pac_subnet_id
+}
+
+output "dev_db_subnet_id" {
+  description = "OCID of the Dev DBCS subnet"
+  value       = module.networking.dev_db_subnet_id
+}
+
+output "poc_compute_subnet_id" {
+  description = "OCID of the POC compute subnet"
+  value       = module.networking.poc_compute_subnet_id
+}
+
+output "dev_compute_subnet_id" {
+  description = "OCID of the Dev compute subnet"
+  value       = module.networking.dev_compute_subnet_id
+}
+
+output "nsg_adb_private_id" {
+  description = "OCID of the ADB-S private endpoint NSG"
+  value       = module.networking.nsg_adb_private_id
+}
+
+output "nsg_oac_pac_id" {
+  description = "OCID of the OAC PAC NSG"
+  value       = module.networking.nsg_oac_pac_id
+}
+
+# ─── Compute ─────────────────────────────────────────────────────────────────
+
+output "poc_instance_id" {
+  description = "OCID of the POC compute instance"
+  value       = module.compute.poc_instance_id
+}
+
+output "poc_instance_private_ip" {
+  description = "Private IP of the POC compute instance"
+  value       = module.compute.poc_private_ip
+}
+
+output "dev_instance_id" {
+  description = "OCID of the Dev compute instance"
+  value       = module.compute.dev_instance_id
+}
+
+output "dev_instance_private_ip" {
+  description = "Private IP of the Dev compute instance"
+  value       = module.compute.dev_private_ip
+}
+
+output "ssh_private_key_pem" {
+  description = "Generated SSH private key — use: terraform output -raw ssh_private_key_pem > compute.pem"
+  value       = module.compute.ssh_private_key_pem
+  sensitive   = true
+}
+
+output "ssh_public_key_openssh" {
+  description = "Generated SSH public key injected into compute instances"
+  value       = module.compute.ssh_public_key_openssh
+}

@@ -1,60 +1,132 @@
 # OAC Private Endpoint ADB-S Connectivity — Terraform
 
-Infrastructure-as-Code for deploying Oracle Analytics Cloud connected to a Private Endpoint Autonomous Database Serverless, with cross-VCN peering to a Dev DBCS instance.
+Infrastructure-as-Code for OCI dual-VCN topology with LPG peering, compute instances, and automated connectivity validation.
 
 ## Architecture
 
+```mermaid
+graph TB
+    subgraph OCI["OCI Tenancy — us-ashburn-1"]
+        direction TB
+
+        subgraph POC_COMP["POC Compartment"]
+            subgraph POC_VCN["POC VCN — 192.168.150.0/24"]
+                direction TB
+
+                subgraph OAC_SUB["oac-pac-sub  192.168.150.64/26"]
+                    OAC["OAC Private<br/>Access Channel"]
+                end
+
+                subgraph ADB_SUB["private-adb-sub  192.168.150.0/26"]
+                    ADB["ADB-S Private<br/>Endpoint"]
+                end
+
+                subgraph POC_COMP_SUB["poc-compute-sub  192.168.150.128/26"]
+                    POC_VM["poc-compute<br/>VM.Standard.E5.Flex<br/>1 OCPU · 16 GB"]
+                end
+
+                LPG_POC(["lpg-poc-to-dev"])
+            end
+        end
+
+        subgraph DEV_COMP["Dev Compartment"]
+            subgraph DEV_VCN["Dev VCN — 192.168.151.0/24"]
+                direction TB
+
+                LPG_DEV(["lpg-dev-to-poc"])
+
+                subgraph DEV_DB_SUB["dev-db-sub  192.168.151.0/26"]
+                    DBCS["Dev DBCS<br/>Instance"]
+                end
+
+                subgraph DEV_COMP_SUB["dev-compute-sub  192.168.151.64/26"]
+                    DEV_VM["dev-compute<br/>VM.Standard.E5.Flex<br/>1 OCPU · 16 GB"]
+                end
+            end
+        end
+    end
+
+    OAC -->|"TCP 1522 mTLS / 443 HTTPS"| ADB
+    ADB -->|"TCP 1521 DB Link"| LPG_POC
+    POC_VM <-->|"SSH 22 · ICMP"| LPG_POC
+    LPG_POC ====>|"LPG Peering"| LPG_DEV
+    LPG_DEV -->|"TCP 1521"| DBCS
+    LPG_DEV <-->|"SSH 22 · ICMP"| DEV_VM
+
+    classDef vcnStyle fill:#1a1a2e,stroke:#4A4580,stroke-width:2px,color:#fff
+    classDef subnetStyle fill:#16213e,stroke:#0F3460,stroke-width:1px,color:#ccc
+    classDef resourceStyle fill:#0F3460,stroke:#E94560,stroke-width:1px,color:#fff
+    classDef lpgStyle fill:#F97316,stroke:#EA580C,stroke-width:2px,color:#fff
+    classDef compartmentStyle fill:#0d1117,stroke:#30363d,stroke-width:2px,color:#ccc
+
+    class POC_VCN,DEV_VCN vcnStyle
+    class OAC_SUB,ADB_SUB,POC_COMP_SUB,DEV_DB_SUB,DEV_COMP_SUB subnetStyle
+    class OAC,ADB,POC_VM,DBCS,DEV_VM resourceStyle
+    class LPG_POC,LPG_DEV lpgStyle
+    class POC_COMP,DEV_COMP compartmentStyle
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  OAC Managed Infrastructure                                 │
-│  ┌───────────────────────┐                                  │
-│  │  Oracle Analytics     │                                  │
-│  │  Cloud Instance       │                                  │
-│  └──────────┬────────────┘                                  │
-│             │ Private Access Channel                        │
-└─────────────┼───────────────────────────────────────────────┘
-              │
-┌─────────────┼───────────────────────────────────────────────┐
-│  POC VCN    │  10.0.0.0/16                                  │
-│             ▼                                               │
-│  ┌──────────────────────┐    ┌──────────────────────────┐   │
-│  │  oac-pac-sub         │    │  private-adb-sub         │   │
-│  │  10.0.2.0/24         │───▶│  10.0.1.0/24             │   │
-│  │  (PAC VNIC)          │    │  (ADB-S Private Endpoint)│   │
-│  │  sl-oac-pac          │    │  sl-adb-private          │   │
-│  │  nsg-oac-pac         │    │  nsg-adb-private         │   │
-│  └──────────────────────┘    └────────────┬─────────────┘   │
-│                                           │                 │
-│                              ┌────────────┴─────────────┐   │
-│                              │  lpg-poc-to-dev           │   │
-│                              └────────────┬─────────────┘   │
-└───────────────────────────────────────────┼─────────────────┘
-                                            │ LPG Peering
-┌───────────────────────────────────────────┼─────────────────┐
-│  Dev VCN   10.1.0.0/16                    │                 │
-│                              ┌────────────┴─────────────┐   │
-│                              │  lpg-dev-to-poc           │   │
-│                              └────────────┬─────────────┘   │
-│                                           │                 │
-│  ┌────────────────────────────────────────┴─────────────┐   │
-│  │  dev-db-sub                                          │   │
-│  │  10.1.1.0/24                                         │   │
-│  │  (Dev DBCS Instance)                                 │   │
-│  │  sl-dev-db                                           │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+
+### Network Topology
+
+```
+ ┌─────────────────────────────────────────────────────────────────────┐
+ │  POC Compartment                                                    │
+ │  ┌───────────────────────────────────────────────────────────────┐  │
+ │  │  POC VCN  192.168.150.0/24                                    │  │
+ │  │                                                               │  │
+ │  │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  │  │
+ │  │  │ oac-pac-sub     │  │ private-adb-sub │  │ poc-compute  │  │  │
+ │  │  │ .64/26          │─▶│ .0/26           │  │ -sub .128/26 │  │  │
+ │  │  │ OAC PAC         │  │ ADB-S PE        │  │ poc-compute  │  │  │
+ │  │  │ sl-oac-pac      │  │ sl-adb-private  │  │ sl-poc-comp  │  │  │
+ │  │  │ nsg-oac-pac     │  │ nsg-adb-private │  │              │  │  │
+ │  │  └─────────────────┘  └────────┬────────┘  └──────┬───────┘  │  │
+ │  │                                │                   │          │  │
+ │  │                       ┌────────┴───────────────────┴───────┐  │  │
+ │  │                       │       lpg-poc-to-dev               │  │  │
+ │  │                       └────────────────┬───────────────────┘  │  │
+ │  └────────────────────────────────────────┼──────────────────────┘  │
+ └───────────────────────────────────────────┼─────────────────────────┘
+                                             │ LPG Peering (PEERED)
+ ┌───────────────────────────────────────────┼─────────────────────────┐
+ │  Dev Compartment                          │                         │
+ │  ┌────────────────────────────────────────┼──────────────────────┐  │
+ │  │  Dev VCN  192.168.151.0/24             │                      │  │
+ │  │                       ┌────────────────┴───────────────────┐  │  │
+ │  │                       │       lpg-dev-to-poc               │  │  │
+ │  │                       └────────┬───────────────────┬───────┘  │  │
+ │  │                                │                   │          │  │
+ │  │  ┌─────────────────────────────┴──┐  ┌─────────────┴───────┐  │  │
+ │  │  │ dev-db-sub                     │  │ dev-compute-sub     │  │  │
+ │  │  │ 192.168.151.0/26              │  │ 192.168.151.64/26   │  │  │
+ │  │  │ Dev DBCS                       │  │ dev-compute         │  │  │
+ │  │  │ sl-dev-db                      │  │ sl-dev-compute      │  │  │
+ │  │  └────────────────────────────────┘  └─────────────────────┘  │  │
+ │  └───────────────────────────────────────────────────────────────┘  │
+ └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Traffic Flows
 
-| Source | Destination | Port | Path | Purpose |
-|--------|-------------|------|------|---------|
-| OAC (PAC) | ADB-S PE | 1522 | Intra-VCN | Analytics queries (mTLS) |
-| OAC (PAC) | ADB-S PE | 443 | Intra-VCN | REST API / HTTPS |
-| ADB-S PE | Dev DBCS | 1521 | LPG | DB Link / data pipeline |
-| OAC (PAC)* | Dev DBCS | 1521 | LPG | Direct analytics (optional) |
+| Source | Destination | Protocol / Port | Path | Purpose |
+|--------|-------------|-----------------|------|---------|
+| OAC (PAC) | ADB-S PE | TCP 1522 | Intra-VCN | Analytics queries (mTLS) |
+| OAC (PAC) | ADB-S PE | TCP 443 | Intra-VCN | REST API / HTTPS |
+| ADB-S PE | Dev DBCS | TCP 1521 | LPG | DB Link / data pipeline |
+| poc-compute | dev-compute | ICMP / SSH 22 | LPG | Cross-VCN connectivity validation |
+| dev-compute | poc-compute | ICMP / SSH 22 | LPG | Cross-VCN connectivity validation |
 
-\* Optional — requires uncommenting DNS zone in analytics module.
+## Security Controls
+
+| Security List | Subnet | Ingress | Egress |
+|---------------|--------|---------|--------|
+| sl-oac-pac | oac-pac-sub | ADB return traffic | TCP 1522/443 → ADB subnet |
+| sl-adb-private | private-adb-sub | TCP 1522/443 from OAC PAC | TCP 1521 → Dev DBCS, return to OAC |
+| sl-dev-db | dev-db-sub | TCP 1521 from ADB-S, SSH from POC | Return to POC VCN |
+| sl-poc-compute | poc-compute-sub | SSH + ICMP from both VCNs | All to both VCNs |
+| sl-dev-compute | dev-compute-sub | SSH + ICMP from both VCNs | All to both VCNs |
+
+NSGs provide additional per-VNIC control: **nsg-adb-private** (ADB-S endpoint) and **nsg-oac-pac** (OAC PAC).
 
 ## Project Structure
 
@@ -63,12 +135,16 @@ terraform-oac-adb-private/
 ├── provider.tf                    # OCI provider + version constraints
 ├── variables.tf                   # All configurable parameters
 ├── main.tf                        # Module composition + dependency ordering
-├── outputs.tf                     # Consolidated outputs for validation
-├── terraform.tfvars.example       # Template — copy to terraform.tfvars
+├── outputs.tf                     # Consolidated outputs
+├── terraform.tfvars               # Environment-specific OCIDs
 ├── .gitignore
 ├── README.md
+├── docs/
+│   └── architecture.mmd           # Mermaid source (standalone)
+├── scripts/
+│   └── validate_ping.py           # LPG connectivity validator (OCI SDK)
 └── modules/
-    ├── iam/                       # IAM policies (OAC service + admin group + ADB-S)
+    ├── iam/                       # IAM policies for networking + compute
     │   ├── main.tf
     │   ├── variables.tf
     │   └── outputs.tf
@@ -76,11 +152,7 @@ terraform-oac-adb-private/
     │   ├── main.tf
     │   ├── variables.tf
     │   └── outputs.tf
-    ├── database/                   # ADB-S (private endpoint) + Dev DBCS
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    └── analytics/                  # OAC instance + Private Access Channel
+    └── compute/                   # Compute instances + SSH key + LPG validation
         ├── main.tf
         ├── variables.tf
         └── outputs.tf
@@ -91,23 +163,15 @@ terraform-oac-adb-private/
 1. **OCI CLI configured** with API key or instance principal authentication
 2. **Terraform >= 1.5.0** installed
 3. **OCI Provider >= 5.30.0** (automatically fetched)
-4. **IDCS Access Token** for OAC provisioning — generate via:
-   ```bash
-   # Using OCI CLI (preferred)
-   oci iam region-idcs-endpoint get --region <region>
-   # Then POST to the IDCS token endpoint with client credentials
-   ```
-5. **IAM Group** `AnalyticsAdmins` must exist (or set `analytics_admin_group_name`)
-6. **SSH Key Pair** for DBCS node access
-7. **Tenancy Limits** verified: minimum 2 VCNs, 1 LPG pair, 1 ADB-S, 1 DBCS, 1 OAC
+4. **Python 3 + OCI SDK** for connectivity validation (`pip install oci`)
+5. **Tenancy Limits**: minimum 2 VCNs, 1 LPG pair, 2 compute instances
 
 ## Quick Start
 
 ```bash
 # 1. Clone and configure
 cd terraform-oac-adb-private
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your OCIDs, passwords, and IDCS token
+# Edit terraform.tfvars with your OCIDs
 
 # 2. Initialize
 terraform init
@@ -115,93 +179,44 @@ terraform init
 # 3. Review plan
 terraform plan -out=tfplan
 
-# 4. Apply (expect 30–60 minutes for full deployment)
+# 4. Apply
 terraform apply tfplan
 ```
 
-## Deployment Timeline
+## Connectivity Validation
 
-| Resource | Approximate Time |
-|----------|-----------------|
-| IAM Policies | < 1 minute |
-| VCNs, Subnets, LPGs, Security Lists | 1–3 minutes |
-| ADB-S (Private Endpoint) | 5–15 minutes |
-| Dev DBCS | 20–40 minutes |
-| OAC Instance | 15–30 minutes |
-| OAC PAC | 15–40 minutes |
-| **Total** | **30–60 minutes** |
+After `terraform apply`, the compute module automatically runs `validate_ping.py` which checks:
 
-## Post-Apply Validation
+1. **LPG Peering Status** — confirms `PEERED` state
+2. **POC Compute Routes** — verifies route to Dev VCN via LPG
+3. **Dev Compute Routes** — verifies route to POC VCN via LPG
+4. **ICMP Security Rules** — confirms bidirectional ICMP ingress/egress
 
-After `terraform apply` completes, verify the `validation_checklist` output:
-
-```bash
-terraform output validation_checklist
 ```
+[1/4] Checking LPG peering status...
+  lpg-poc-to-dev: peering_status=PEERED
+  PASS - LPG is PEERED
+[2/4] Checking POC compute subnet routes...
+  Route to Dev VCN (192.168.151.0/24): PASS
+[3/4] Checking Dev compute subnet routes...
+  Route to POC VCN (192.168.150.0/24): PASS
+[4/4] Checking ICMP rules in security lists...
+  POC (sl-poc-compute): ICMP ingress=PASS, egress=PASS
+  Dev (sl-dev-compute): ICMP ingress=PASS, egress=PASS
 
-Expected:
+============================================================
+RESULT: All network connectivity checks PASSED
 ```
-{
-  "1_lpg_peering"    = "PEERED"
-  "2_adb_private_ep" = "xxxxxxxx.adb.us-ashburn-1.oraclecloudapps.com"
-  "3_adb_private_ip" = "10.0.1.x"
-  "4_pac_egress_ip"  = "10.0.2.x"
-  "5_oac_url"        = "https://poc-oac-xxxxxxxx.analytics.ocp.oraclecloud.com"
-}
-```
-
-Then complete the OAC connection setup:
-
-1. Download the ADB-S wallet from the OCI Console
-2. Verify `tnsnames.ora` references the private FQDN (not public)
-3. In OAC Console → Create Connection → Oracle Autonomous Data Warehouse
-4. Upload wallet, select service name, enter credentials
-5. Test connection
-
-## Wallet Download (CLI)
-
-```bash
-oci db autonomous-database generate-wallet \
-  --autonomous-database-id $(terraform output -raw adb_id) \
-  --password 'WalletP@ss1' \
-  --file wallet_pocadb.zip
-```
-
-## Common Issues
-
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| PAC creation fails silently | Missing `allow service analytics` policies | Verify IAM module applied first |
-| Connection timeout in OAC | DNS zone missing on PAC | Check `private_source_dns_zones` in analytics module |
-| Connection refused | ADB-S ACL missing OAC subnet | Verify `whitelisted_ips` includes `oac_pac_subnet_cidr` |
-| ORA-12541: TNS no listener | Security list blocks port 1522 | Check sl-oac-pac egress + sl-adb-private ingress |
-| ORA-28759: file open failure | Stale wallet | Re-download wallet after PE provisioning |
-
-## Extending OAC to Dev DBCS (Optional)
-
-To enable direct OAC → Dev DBCS connectivity across the LPG:
-
-1. Uncomment the Dev VCN DNS zone block in `modules/analytics/main.tf`
-2. The route table entry in `rt-poc-oac-pac` already includes the Dev VCN route
-3. Add security list rules for TCP/1521 from `oac_pac_subnet_cidr` to `dev_db_subnet_cidr`
-4. Run `terraform apply`
 
 ## Teardown
 
 ```bash
-# Destroy in reverse order (Terraform handles dependencies)
 terraform destroy
 ```
 
-## Architecture Diagram
-![Diagram](images/oci_network_diagram.png)
-
-
-**Warning:** ADB-S destruction is permanent. Ensure backups exist before destroying.
-
 ## References
 
-- [OAC Private Access Channel documentation](https://docs.oracle.com/en-us/iaas/analytics-cloud/doc/manage-service-access-and-security.html)
-- [ADB-S Private Endpoints](https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/adbsprivateaccess.htm)
 - [OCI Local Peering Gateways](https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/localVCNpeering.htm)
+- [OAC Private Access Channel](https://docs.oracle.com/en-us/iaas/analytics-cloud/doc/manage-service-access-and-security.html)
+- [ADB-S Private Endpoints](https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/adbsprivateaccess.htm)
 - [OCI Terraform Provider](https://registry.terraform.io/providers/oracle/oci/latest/docs)
