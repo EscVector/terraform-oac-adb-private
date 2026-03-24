@@ -39,6 +39,17 @@ resource "oci_core_instance" "poc" {
     display_name     = "poc-compute-vnic"
   }
 
+  agent_config {
+    are_all_plugins_disabled = false
+    is_management_disabled   = false
+    is_monitoring_disabled   = false
+
+    plugins_config {
+      name          = "Bastion"
+      desired_state = "ENABLED"
+    }
+  }
+
   metadata = {
     ssh_authorized_keys = tls_private_key.compute.public_key_openssh
   }
@@ -71,9 +82,34 @@ resource "oci_core_instance" "dev" {
     display_name     = "dev-compute-vnic"
   }
 
+  agent_config {
+    are_all_plugins_disabled = false
+    is_management_disabled   = false
+    is_monitoring_disabled   = false
+
+    plugins_config {
+      name          = "Bastion"
+      desired_state = "ENABLED"
+    }
+  }
+
   metadata = {
     ssh_authorized_keys = tls_private_key.compute.public_key_openssh
   }
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OCI Bastion Service — POC Compute Subnet
+# ═══════════════════════════════════════════════════════════════════════════════
+
+resource "oci_bastion_bastion" "poc" {
+  compartment_id               = var.poc_compartment_ocid
+  bastion_type                 = "STANDARD"
+  target_subnet_id             = var.poc_compute_subnet_id
+  name                         = "poc-bastion"
+  client_cidr_block_allow_list = var.bastion_client_cidr_allow_list
+  max_session_ttl_in_seconds   = var.bastion_max_session_ttl
+  freeform_tags                = var.freeform_tags
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════

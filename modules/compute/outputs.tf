@@ -13,6 +13,11 @@ output "ssh_public_key_openssh" {
   value = tls_private_key.compute.public_key_openssh
 }
 
+output "bastion_id" {
+  description = "OCID of the POC bastion"
+  value       = oci_bastion_bastion.poc.id
+}
+
 output "connectivity_validation_id" {
   description = "ID of the connectivity validation resource (non-null means validation ran)"
   value       = null_resource.validate_connectivity.id

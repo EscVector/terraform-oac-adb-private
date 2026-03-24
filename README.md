@@ -215,6 +215,132 @@ terraform plan -out=tfplan
 terraform apply tfplan
 ```
 
+## Connecting via the Bastion
+
+Both compute instances are on private subnets with no public IP. An OCI Bastion is deployed in the POC compute subnet to provide SSH access.
+
+### Automated (recommended)
+
+The `bastion_connect.py` script creates a port-forwarding session and prints the SSH commands:
+
+```bash
+# POC instance
+python scripts/bastion_connect.py
+
+# Dev instance (hop through POC via LPG)
+python scripts/bastion_connect.py --target dev
+```
+
+The script extracts SSH keys from Terraform state automatically if they don't exist.
+
+### Manual
+
+#### 1. Extract the SSH keys
+
+```bash
+# Private key (for SSH client)
+terraform output -raw ssh_private_key_pem > compute.pem
+chmod 600 compute.pem
+
+# Public key (required by the bastion session)
+terraform output -raw ssh_public_key_openssh > compute_pub.key
+```
+
+#### 2. Create a port-forwarding session
+
+The bastion uses port forwarding to tunnel SSH traffic — no Bastion plugin required on the target instance.
+
+```bash
+oci bastion session create-port-forwarding \
+  --bastion-id $(terraform output -raw bastion_id) \
+  --ssh-public-key-file compute_pub.key \
+  --target-private-ip $(terraform output -raw poc_instance_private_ip) \
+  --target-port 22 \
+  --session-ttl 3600 \
+  --wait-for-state SUCCEEDED
+```
+
+#### 3. Open the tunnel
+
+In a separate terminal, start the SSH tunnel using the session OCID from the output:
+
+```bash
+ssh -i compute.pem -N -L 2222:<poc-private-ip>:22 \
+  -p 22 <session-ocid>@host.bastion.<region>.oci.oraclecloud.com
+```
+
+#### 4. Connect through the tunnel
+
+In another terminal:
+
+```bash
+ssh -i compute.pem -p 2222 opc@localhost
+```
+
+#### 5. Hop to the Dev instance
+
+From the POC instance, SSH across the LPG to the Dev compute instance. You must first copy the private key onto the POC host since there is no direct bastion path to the Dev VCN:
+
+```bash
+# From your local machine, copy the key through the tunnel
+scp -i compute.pem -P 2222 compute.pem opc@localhost:~/.ssh/compute.pem
+
+# Then on the POC instance
+chmod 600 ~/.ssh/compute.pem
+ssh -i ~/.ssh/compute.pem opc@<dev-private-ip>
+```
+
+> **Note:** The bastion is in the POC VCN and can reach POC instances directly. To access the Dev VCN (`192.168.1.0/24`), hop through the POC instance via the LPG peering.
+
+> **Tip:** Restrict `bastion_client_cidr_allow_list` in `terraform.tfvars` to your public IP (e.g. `["203.0.113.5/32"]`) instead of the default `0.0.0.0/0`.
+
+### MobaXterm (Windows)
+
+#### 1. Create the bastion session
+
+Create a port-forwarding session using the OCI CLI or the `bastion_connect.py` script as described above. Note the **session OCID** from the output.
+
+#### 2. Set up the tunnel in MobaXterm
+
+1. Open **Tools > MobaSSHTunnel (Port Forwarding)**.
+2. Click **New SSH tunnel**.
+3. Select **Local port forwarding**.
+4. Configure the tunnel:
+
+   | Field | Value |
+   |-------|-------|
+   | **Forwarded port** (local) | `2222` |
+   | **SSH server** | `host.bastion.<region>.oci.oraclecloud.com` |
+   | **SSH login** | `<session-ocid>` (the full `ocid1.bastionsession.oc1...` string) |
+   | **SSH port** | `22` |
+   | **Remote server** | Private IP of the target instance (e.g. `192.168.0.x`) |
+   | **Remote port** | `22` |
+
+5. Click the **key icon** and select `compute.pem` (the private key).
+6. Click **Save**, then click **Play** to start the tunnel.
+
+#### 3. Connect through the tunnel
+
+1. Open a new **SSH session** in MobaXterm.
+2. Set **Remote host** to `localhost`, **Port** to `2222`.
+3. Set **Username** to `opc`.
+4. Under **Advanced SSH settings**, check **Use private key** and select `compute.pem`.
+5. Click **OK** to connect to the POC instance.
+
+#### 4. Hop to the Dev instance
+
+Copy the private key to the POC host, then SSH to Dev:
+
+1. In MobaXterm, use the left-side SFTP panel to upload `compute.pem` to `/home/opc/.ssh/compute.pem` on the POC instance.
+2. In the terminal session, run:
+
+```bash
+chmod 600 ~/.ssh/compute.pem
+ssh -i ~/.ssh/compute.pem opc@<dev-private-ip>
+```
+
+> **Important:** You must copy the private key onto the POC compute host to SSH to the Dev instance. The bastion cannot reach the Dev VCN directly — the connection must hop through the POC instance via the LPG peering.
+
 ## Connectivity Validation
 
 After `terraform apply`, the compute module automatically runs `validate_ping.py` which checks:

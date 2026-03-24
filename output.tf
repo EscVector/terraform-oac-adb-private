@@ -86,3 +86,10 @@ output "ssh_public_key_openssh" {
   description = "Generated SSH public key injected into compute instances"
   value       = module.compute.ssh_public_key_openssh
 }
+
+# ─── Bastion ─────────────────────────────────────────────────────────────────
+
+output "bastion_id" {
+  description = "OCID of the POC bastion"
+  value       = module.compute.bastion_id
+}

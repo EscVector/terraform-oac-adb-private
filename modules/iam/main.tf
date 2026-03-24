@@ -16,6 +16,8 @@ resource "oci_identity_policy" "poc_policies" {
     "Allow group ${var.admin_group_name} to manage virtual-network-family in compartment id ${var.poc_compartment_ocid}",
     "Allow group ${var.admin_group_name} to manage instance-family in compartment id ${var.poc_compartment_ocid}",
     "Allow group ${var.admin_group_name} to manage volume-family in compartment id ${var.poc_compartment_ocid}",
+    "Allow group ${var.admin_group_name} to manage bastion-family in compartment id ${var.poc_compartment_ocid}",
+    "Allow group ${var.admin_group_name} to manage bastion-session in compartment id ${var.poc_compartment_ocid}",
     "Allow group ${var.admin_group_name} to inspect compartments in tenancy",
     "Allow group ${var.admin_group_name} to read app-catalog-listing in tenancy",
   ]

@@ -139,6 +139,20 @@ variable "instance_image_ocid" {
   type        = string
 }
 
+# ─── Bastion ────────────────────────────────────────────────────────────────
+
+variable "bastion_client_cidr_allow_list" {
+  description = "CIDR blocks allowed to connect to the bastion (e.g. your public IP)"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "bastion_max_session_ttl" {
+  description = "Maximum session TTL in seconds for bastion sessions (default 3 hours)"
+  type        = number
+  default     = 10800
+}
+
 # ─── ADB-S Listener ──────────────────────────────────────────────────────────
 
 variable "adb_is_mtls_required" {

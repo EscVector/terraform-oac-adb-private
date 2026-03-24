@@ -4,6 +4,7 @@
 *.tfstate.backup
 .terraform/
 .terraform.lock.hcl
+*tfplan*
 
 # Variables with secrets
 terraform.tfvars
@@ -22,3 +23,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+*.pub*
+*_pub*
+*.pem*

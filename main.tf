@@ -69,6 +69,9 @@ module "compute" {
   instance_shape_memory_in_gbs = var.instance_shape_memory_in_gbs
   instance_image_ocid         = var.instance_image_ocid
 
+  bastion_client_cidr_allow_list = var.bastion_client_cidr_allow_list
+  bastion_max_session_ttl        = var.bastion_max_session_ttl
+
   freeform_tags = var.freeform_tags
 
   depends_on = [module.networking]
