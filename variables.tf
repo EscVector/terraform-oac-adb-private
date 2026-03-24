@@ -59,7 +59,7 @@ variable "dev_compartment_ocid" {
 variable "poc_vcn_cidr" {
   description = "CIDR block for the POC VCN"
   type        = string
-  default     = "192.168.150.0/24"
+  default     = "192.168.0.0/24"
 }
 
 variable "poc_vcn_display_name" {
@@ -71,13 +71,13 @@ variable "poc_vcn_display_name" {
 variable "adb_subnet_cidr" {
   description = "CIDR block for the ADB-S private endpoint subnet"
   type        = string
-  default     = "192.168.150.0/26"
+  default     = "192.168.0.0/26"
 }
 
 variable "oac_pac_subnet_cidr" {
   description = "CIDR block for the OAC Private Access Channel subnet"
   type        = string
-  default     = "192.168.150.64/26"
+  default     = "192.168.0.64/26"
 }
 
 # ─── Dev VCN ──────────────────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ variable "oac_pac_subnet_cidr" {
 variable "dev_vcn_cidr" {
   description = "CIDR block for the Dev VCN"
   type        = string
-  default     = "192.168.151.0/24"
+  default     = "192.168.1.0/24"
 }
 
 variable "dev_vcn_display_name" {
@@ -97,7 +97,7 @@ variable "dev_vcn_display_name" {
 variable "dev_db_subnet_cidr" {
   description = "CIDR block for the Dev DBCS subnet"
   type        = string
-  default     = "192.168.151.0/26"
+  default     = "192.168.1.0/26"
 }
 
 # ─── Compute Subnets ─────────────────────────────────────────────────────────
@@ -105,13 +105,13 @@ variable "dev_db_subnet_cidr" {
 variable "poc_compute_subnet_cidr" {
   description = "CIDR block for the POC compute subnet"
   type        = string
-  default     = "192.168.150.128/26"
+  default     = "192.168.0.128/26"
 }
 
 variable "dev_compute_subnet_cidr" {
   description = "CIDR block for the Dev compute subnet"
   type        = string
-  default     = "192.168.151.64/26"
+  default     = "192.168.1.64/26"
 }
 
 # ─── Compute Instances ──────────────────────────────────────────────────────

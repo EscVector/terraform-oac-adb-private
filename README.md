@@ -10,18 +10,18 @@ graph TB
         direction TB
 
         subgraph POC_COMP["POC Compartment"]
-            subgraph POC_VCN["POC VCN — 192.168.150.0/24"]
+            subgraph POC_VCN["POC VCN — 192.168.0.0/24"]
                 direction TB
 
-                subgraph OAC_SUB["oac-pac-sub  192.168.150.64/26"]
+                subgraph OAC_SUB["oac-pac-sub  192.168.0.64/26"]
                     OAC["OAC Private<br/>Access Channel"]
                 end
 
-                subgraph ADB_SUB["private-adb-sub  192.168.150.0/26"]
+                subgraph ADB_SUB["private-adb-sub  192.168.0.0/26"]
                     ADB["ADB-S Private<br/>Endpoint"]
                 end
 
-                subgraph POC_COMP_SUB["poc-compute-sub  192.168.150.128/26"]
+                subgraph POC_COMP_SUB["poc-compute-sub  192.168.0.128/26"]
                     POC_VM["poc-compute<br/>VM.Standard.E5.Flex<br/>1 OCPU · 16 GB"]
                 end
 
@@ -30,16 +30,16 @@ graph TB
         end
 
         subgraph DEV_COMP["Dev Compartment"]
-            subgraph DEV_VCN["Dev VCN — 192.168.151.0/24"]
+            subgraph DEV_VCN["Dev VCN — 192.168.1.0/24"]
                 direction TB
 
                 LPG_DEV(["lpg-dev-to-poc"])
 
-                subgraph DEV_DB_SUB["dev-db-sub  192.168.151.0/26"]
+                subgraph DEV_DB_SUB["dev-db-sub  192.168.1.0/26"]
                     DBCS["Dev DBCS<br/>Instance"]
                 end
 
-                subgraph DEV_COMP_SUB["dev-compute-sub  192.168.151.64/26"]
+                subgraph DEV_COMP_SUB["dev-compute-sub  192.168.1.64/26"]
                     DEV_VM["dev-compute<br/>VM.Standard.E5.Flex<br/>1 OCPU · 16 GB"]
                 end
             end
@@ -72,7 +72,7 @@ graph TB
  ┌─────────────────────────────────────────────────────────────────────┐
  │  POC Compartment                                                    │
  │  ┌───────────────────────────────────────────────────────────────┐  │
- │  │  POC VCN  192.168.150.0/24                                    │  │
+ │  │  POC VCN  192.168.0.0/24                                    │  │
  │  │                                                               │  │
  │  │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  │  │
  │  │  │ oac-pac-sub     │  │ private-adb-sub │  │ poc-compute  │  │  │
@@ -91,14 +91,14 @@ graph TB
  ┌───────────────────────────────────────────┼─────────────────────────┐
  │  Dev Compartment                          │                         │
  │  ┌────────────────────────────────────────┼──────────────────────┐  │
- │  │  Dev VCN  192.168.151.0/24             │                      │  │
+ │  │  Dev VCN  192.168.1.0/24             │                      │  │
  │  │                       ┌────────────────┴───────────────────┐  │  │
  │  │                       │       lpg-dev-to-poc               │  │  │
  │  │                       └────────┬───────────────────┬───────┘  │  │
  │  │                                │                   │          │  │
  │  │  ┌─────────────────────────────┴──┐  ┌─────────────┴───────┐  │  │
  │  │  │ dev-db-sub                     │  │ dev-compute-sub     │  │  │
- │  │  │ 192.168.151.0/26              │  │ 192.168.151.64/26   │  │  │
+ │  │  │ 192.168.1.0/26              │  │ 192.168.1.64/26   │  │  │
  │  │  │ Dev DBCS                       │  │ dev-compute         │  │  │
  │  │  │ sl-dev-db                      │  │ sl-dev-compute      │  │  │
  │  │  └────────────────────────────────┘  └─────────────────────┘  │  │
@@ -229,9 +229,9 @@ After `terraform apply`, the compute module automatically runs `validate_ping.py
   lpg-poc-to-dev: peering_status=PEERED
   PASS - LPG is PEERED
 [2/4] Checking POC compute subnet routes...
-  Route to Dev VCN (192.168.151.0/24): PASS
+  Route to Dev VCN (192.168.1.0/24): PASS
 [3/4] Checking Dev compute subnet routes...
-  Route to POC VCN (192.168.150.0/24): PASS
+  Route to POC VCN (192.168.0.0/24): PASS
 [4/4] Checking ICMP rules in security lists...
   POC (sl-poc-compute): ICMP ingress=PASS, egress=PASS
   Dev (sl-dev-compute): ICMP ingress=PASS, egress=PASS

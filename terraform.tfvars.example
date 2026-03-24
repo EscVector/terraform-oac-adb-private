@@ -19,16 +19,16 @@ dev_compartment_ocid = "ocid1.compartment.oc1..aaaa..."
 
 # ─── Network CIDRs (defaults shown — override if needed) ─────────────────────
 
-# poc_vcn_cidr        = "192.168.150.0/24"
-# dev_vcn_cidr        = "192.168.151.0/24"
-# adb_subnet_cidr     = "192.168.150.0/26"
-# oac_pac_subnet_cidr = "192.168.150.64/26"
-# dev_db_subnet_cidr  = "192.168.151.0/26"
+# poc_vcn_cidr        = "192.168.0.0/24"
+# dev_vcn_cidr        = "192.168.1.0/24"
+# adb_subnet_cidr     = "192.168.0.0/26"
+# oac_pac_subnet_cidr = "192.168.0.64/26"
+# dev_db_subnet_cidr  = "192.168.1.0/26"
 
 # ─── Compute Subnets (defaults shown — override if needed) ──────────────────
 
-# poc_compute_subnet_cidr = "192.168.150.128/26"
-# dev_compute_subnet_cidr = "192.168.151.64/26"
+# poc_compute_subnet_cidr = "192.168.0.128/26"
+# dev_compute_subnet_cidr = "192.168.1.64/26"
 
 # ─── Compute Instances ──────────────────────────────────────────────────────
 

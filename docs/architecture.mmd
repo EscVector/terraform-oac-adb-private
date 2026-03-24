@@ -5,18 +5,18 @@ graph TB
         direction TB
 
         subgraph POC_COMP["POC Compartment"]
-            subgraph POC_VCN["POC VCN &mdash; 192.168.150.0/24"]
+            subgraph POC_VCN["POC VCN &mdash; 192.168.0.0/24"]
                 direction TB
 
-                subgraph OAC_SUB["oac-pac-sub<br/>192.168.150.64/26"]
+                subgraph OAC_SUB["oac-pac-sub<br/>192.168.0.64/26"]
                     OAC["OAC Private<br/>Access Channel"]
                 end
 
-                subgraph ADB_SUB["private-adb-sub<br/>192.168.150.0/26"]
+                subgraph ADB_SUB["private-adb-sub<br/>192.168.0.0/26"]
                     ADB["ADB-S Private<br/>Endpoint"]
                 end
 
-                subgraph POC_COMP_SUB["poc-compute-sub<br/>192.168.150.128/26"]
+                subgraph POC_COMP_SUB["poc-compute-sub<br/>192.168.0.128/26"]
                     POC_VM["poc-compute<br/>VM.Standard.E5.Flex<br/>1 OCPU / 16 GB"]
                 end
 
@@ -25,16 +25,16 @@ graph TB
         end
 
         subgraph DEV_COMP["Dev Compartment"]
-            subgraph DEV_VCN["Dev VCN &mdash; 192.168.151.0/24"]
+            subgraph DEV_VCN["Dev VCN &mdash; 192.168.1.0/24"]
                 direction TB
 
                 LPG_DEV(["lpg-dev-to-poc"])
 
-                subgraph DEV_DB_SUB["dev-db-sub<br/>192.168.151.0/26"]
+                subgraph DEV_DB_SUB["dev-db-sub<br/>192.168.1.0/26"]
                     DBCS["Dev DBCS<br/>Instance"]
                 end
 
-                subgraph DEV_COMP_SUB["dev-compute-sub<br/>192.168.151.64/26"]
+                subgraph DEV_COMP_SUB["dev-compute-sub<br/>192.168.1.64/26"]
                     DEV_VM["dev-compute<br/>VM.Standard.E5.Flex<br/>1 OCPU / 16 GB"]
                 end
             end
