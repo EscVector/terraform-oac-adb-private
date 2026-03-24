@@ -15,3 +15,5 @@ output "lpg_poc_to_dev_id" { value = oci_core_local_peering_gateway.poc_to_dev.i
 output "lpg_dev_to_poc_id" { value = oci_core_local_peering_gateway.dev_to_poc.id }
 
 output "lpg_peering_status" { value = oci_core_local_peering_gateway.poc_to_dev.peering_status }
+
+output "dev_service_gateway_id" { value = oci_core_service_gateway.dev.id }

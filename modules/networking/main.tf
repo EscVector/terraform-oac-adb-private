@@ -230,6 +230,20 @@ resource "oci_core_security_list" "dev_db" {
     stateless   = false
     description = "Return traffic to POC VCN via LPG"
   }
+
+  # Egress: OCI services via Service Gateway
+  egress_security_rules {
+    destination      = local.oci_services_cidr_block
+    destination_type = "SERVICE_CIDR_BLOCK"
+    protocol         = "6"
+    stateless        = false
+    description      = "HTTPS to OCI services via Service Gateway"
+
+    tcp_options {
+      min = 443
+      max = 443
+    }
+  }
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -340,6 +354,36 @@ resource "oci_core_network_security_group_security_rule" "oac_egress_adb_https" 
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# SERVICE GATEWAY — Dev VCN
+# Provides access to OCI services (Object Storage, OS updates, etc.) without
+# traversing the public internet.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+data "oci_core_services" "all_oci_services" {
+  filter {
+    name   = "name"
+    values = ["All .* Services In Oracle Services Network"]
+    regex  = true
+  }
+}
+
+locals {
+  oci_services_id         = data.oci_core_services.all_oci_services.services[0].id
+  oci_services_cidr_block = data.oci_core_services.all_oci_services.services[0].cidr_block
+}
+
+resource "oci_core_service_gateway" "dev" {
+  compartment_id = var.dev_compartment_ocid
+  vcn_id         = oci_core_vcn.dev.id
+  display_name   = "sgw-dev"
+  freeform_tags  = var.freeform_tags
+
+  services {
+    service_id = local.oci_services_id
+  }
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ROUTE TABLES
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -393,6 +437,13 @@ resource "oci_core_route_table" "dev_db" {
     network_entity_id = oci_core_local_peering_gateway.dev_to_poc.id
     description       = "Route to POC VCN via LPG"
   }
+
+  route_rules {
+    destination       = local.oci_services_cidr_block
+    destination_type  = "SERVICE_CIDR_BLOCK"
+    network_entity_id = oci_core_service_gateway.dev.id
+    description       = "Route to OCI services via Service Gateway"
+  }
 }
 
 # ─── POC VCN: Compute Subnet Route Table ────────────────────────────────────
@@ -424,6 +475,13 @@ resource "oci_core_route_table" "dev_compute" {
     destination_type  = "CIDR_BLOCK"
     network_entity_id = oci_core_local_peering_gateway.dev_to_poc.id
     description       = "Route to POC VCN via LPG"
+  }
+
+  route_rules {
+    destination       = local.oci_services_cidr_block
+    destination_type  = "SERVICE_CIDR_BLOCK"
+    network_entity_id = oci_core_service_gateway.dev.id
+    description       = "Route to OCI services via Service Gateway"
   }
 }
 
@@ -562,6 +620,20 @@ resource "oci_core_security_list" "dev_compute" {
     protocol    = "all"
     stateless   = false
     description = "All traffic within Dev VCN"
+  }
+
+  # Egress: OCI services via Service Gateway
+  egress_security_rules {
+    destination      = local.oci_services_cidr_block
+    destination_type = "SERVICE_CIDR_BLOCK"
+    protocol         = "6"
+    stateless        = false
+    description      = "HTTPS to OCI services via Service Gateway"
+
+    tcp_options {
+      min = 443
+      max = 443
+    }
   }
 }
 
