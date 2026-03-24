@@ -168,18 +168,50 @@ terraform-oac-adb-private/
 
 ## Quick Start
 
+### 1. Compartment Requirements
+
+This project deploys resources across **two separate OCI compartments**. Both must exist before running Terraform.
+
+| Compartment | Variable | Resources Deployed |
+|-------------|----------|--------------------|
+| **POC** | `poc_compartment_ocid` | POC VCN, OAC Private Access Channel subnet, ADB-S private endpoint subnet, POC compute instance |
+| **Dev** | `dev_compartment_ocid` | Dev VCN, Dev DBCS subnet, Dev compute instance |
+
+The deploying user (or group specified by `admin_group_name`) must have the following permissions:
+
+- **POC Compartment** — `manage virtual-network-family`, `manage instance-family`, `manage volume-family`
+- **Dev Compartment** — `manage virtual-network-family`, `manage instance-family`, `manage volume-family`
+- **Tenancy** — `inspect compartments`, `read app-catalog-listing`, `read instance-images`, `read instance-family`, `use volume-family`
+
+> Terraform creates these IAM policies automatically via the `iam` module. The user running `terraform apply` must have permission to create policies at the tenancy level.
+
+### 2. Configure Variables
+
 ```bash
-# 1. Clone and configure
 cd terraform-oac-adb-private
-# Edit terraform.tfvars with your OCIDs
+cp terraform.tfvars.example terraform.tfvars
+```
 
-# 2. Initialize
+Edit `terraform.tfvars` with your environment-specific values:
+
+```hcl
+# Required
+tenancy_ocid         = "ocid1.tenancy.oc1..aaaa..."
+user_ocid            = "ocid1.user.oc1..aaaa..."
+fingerprint          = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+private_key_path     = "~/.oci/oci_api_key.pem"
+region               = "us-ashburn-1"
+
+poc_compartment_ocid = "ocid1.compartment.oc1..aaaa..."
+dev_compartment_ocid = "ocid1.compartment.oc1..aaaa..."
+instance_image_ocid  = "ocid1.image.oc1.iad.aaaa..."
+```
+
+### 3. Deploy
+
+```bash
 terraform init
-
-# 3. Review plan
 terraform plan -out=tfplan
-
-# 4. Apply
 terraform apply tfplan
 ```
 
