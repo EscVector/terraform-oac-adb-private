@@ -246,9 +246,43 @@ RESULT: All network connectivity checks PASSED
 terraform destroy
 ```
 
+## Why a Local Peering Gateway?
+
+This project uses an LPG rather than a Dynamic Routing Gateway (DRG) or a single flat VCN to intentionally limit connectivity options and reduce the attack surface.
+
+### Security benefits
+
+- **No internet exposure** — All traffic between peered VCNs stays on the OCI backbone. Packets never traverse the public internet, eliminating eavesdropping and man-in-the-middle risks.
+- **Point-to-point blast radius** — An LPG connects exactly two VCNs. If one VCN is compromised, only its direct peer is reachable — not every VCN in the environment.
+- **No transitive routing** — VCN-A peered with VCN-B, and VCN-B peered with VCN-C, does **not** allow VCN-A to reach VCN-C. A peered VCN also cannot use its peer's internet gateway, NAT gateway, or service gateway. This prevents unintended lateral movement.
+- **Bilateral IAM consent** — Establishing a peering requires explicit IAM policy grants from both VCN administrators (requestor and acceptor). Unauthorized peering is not possible.
+- **Granular route and security control** — Each side must independently add route rules pointing to the LPG and open security list / NSG rules. Without explicit rules on **both** sides, no traffic flows. A dedicated route table can be associated with the LPG itself for additional control.
+
+### Architectural simplicity
+
+- **Less misconfiguration risk** — A direct link between two VCNs has no central router, no hub-and-spoke import/export policies, and no chance of accidentally leaking routes between unrelated VCNs.
+- **Lowest latency** — LPG traffic takes a direct path with no virtual-router hop, yielding lower latency than DRG-routed traffic.
+
+### When to use a DRG instead
+
+A DRG is the better choice when you need to connect three or more VCNs, require cross-region connectivity, or want centralized transit routing. The upgraded DRG supports up to 300 VCN attachments with flexible route import/export policies — but that flexibility comes with a larger blast radius and more complex route management.
+
+| Consideration | LPG | DRG |
+|---------------|-----|-----|
+| VCN connectivity | Point-to-point (2 VCNs) | Up to 300 attachments |
+| Region scope | Same region only | Same or cross-region |
+| Transitive routing | Not possible | Configurable via DRG route tables |
+| Latency | Lowest (direct path) | Slightly higher (virtual router hop) |
+| Blast radius | Minimal | Broader — all attached VCNs share a routing domain |
+| Best for | Strict isolation between VCN pairs | Hub-and-spoke, multi-region, or many-VCN topologies |
+
+> **This project's topology** — an OAC private endpoint VCN peered with an ADB-S VCN — is a textbook LPG use case. The only permitted communication is between those two services, and the LPG ensures no other VCN can be inadvertently reached.
+
 ## References
 
 - [OCI Local Peering Gateways](https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/localVCNpeering.htm)
 - [OAC Private Access Channel](https://docs.oracle.com/en-us/iaas/analytics-cloud/doc/manage-service-access-and-security.html)
 - [ADB-S Private Endpoints](https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/adbsprivateaccess.htm)
+- [Basic Routing Scenarios for the Enhanced DRG](https://www.ateam-oracle.com/basic-routing-scenarios-for-the-enhanced-drg)
+- [Give an LPG Access to a Route Table](https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/give-lpg-rt.htm)
 - [OCI Terraform Provider](https://registry.terraform.io/providers/oracle/oci/latest/docs)
