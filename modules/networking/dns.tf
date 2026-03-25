@@ -9,10 +9,21 @@
 
 data "oci_core_vcn_dns_resolver_association" "poc" {
   vcn_id = oci_core_vcn.poc.id
+
+  depends_on = [
+    oci_core_subnet.poc_compute,
+    oci_core_subnet.adb_private,
+    oci_core_subnet.oac_pac,
+  ]
 }
 
 data "oci_core_vcn_dns_resolver_association" "dev" {
   vcn_id = oci_core_vcn.dev.id
+
+  depends_on = [
+    oci_core_subnet.dev_compute,
+    oci_core_subnet.dev_db,
+  ]
 }
 
 # ─── POC VCN: Listening Endpoint ────────────────────────────────────────────

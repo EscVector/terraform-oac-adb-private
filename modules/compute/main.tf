@@ -121,8 +121,7 @@ resource "null_resource" "validate_connectivity" {
   depends_on = [oci_core_instance.poc, oci_core_instance.dev]
 
   triggers = {
-    poc_id = oci_core_instance.poc.id
-    dev_id = oci_core_instance.dev.id
+    always_run = timestamp()
   }
 
   provisioner "local-exec" {

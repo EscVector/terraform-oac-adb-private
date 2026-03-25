@@ -5,6 +5,7 @@
 .terraform/
 .terraform.lock.hcl
 *tfplan*
+*tfout*
 
 # Variables with secrets
 terraform.tfvars
