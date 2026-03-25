@@ -40,16 +40,16 @@ variable "adb_db_version" {
   default     = "19c"
 }
 
-variable "adb_cpu_core_count" {
-  description = "Number of ECPU cores for the ADB (0 for ECPU-based billing)"
+variable "adb_compute_count" {
+  description = "Number of ECPUs for the ADB (minimum 2)"
   type        = number
-  default     = 0
+  default     = 2
 }
 
-variable "adb_data_storage_size_in_tbs" {
-  description = "Data storage size in TBs"
+variable "adb_data_storage_size_in_gb" {
+  description = "Data storage size in GB (minimum 20)"
   type        = number
-  default     = 1
+  default     = 20
 }
 
 variable "adb_admin_password" {

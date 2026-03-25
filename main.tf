@@ -94,8 +94,8 @@ module "database" {
   adb_db_name                  = var.adb_db_name
   adb_db_workload              = var.adb_db_workload
   adb_db_version               = var.adb_db_version
-  adb_cpu_core_count           = var.adb_cpu_core_count
-  adb_data_storage_size_in_tbs = var.adb_data_storage_size_in_tbs
+  adb_compute_count            = var.adb_compute_count
+  adb_data_storage_size_in_gb  = var.adb_data_storage_size_in_gb
   adb_admin_password           = var.adb_admin_password
   adb_is_mtls_required         = var.adb_is_mtls_required
   adb_license_model            = var.adb_license_model

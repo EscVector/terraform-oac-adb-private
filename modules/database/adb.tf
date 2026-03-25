@@ -10,8 +10,9 @@ resource "oci_database_autonomous_database" "poc_adb" {
   db_workload    = var.adb_db_workload
   db_version     = var.adb_db_version
 
-  cpu_core_count           = var.adb_cpu_core_count
-  data_storage_size_in_tbs = var.adb_data_storage_size_in_tbs
+  compute_count            = var.adb_compute_count
+  compute_model            = "ECPU"
+  data_storage_size_in_gb  = var.adb_data_storage_size_in_gb
   admin_password           = var.adb_admin_password
 
   is_mtls_connection_required    = var.adb_is_mtls_required

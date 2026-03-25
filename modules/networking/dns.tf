@@ -20,7 +20,7 @@ data "oci_core_vcn_dns_resolver_association" "dev" {
 
 resource "oci_dns_resolver_endpoint" "poc_listener" {
   resolver_id   = data.oci_core_vcn_dns_resolver_association.poc.dns_resolver_id
-  name          = "poc-listener"
+  name          = "poc_listener"
   is_forwarding = false
   is_listening  = true
   subnet_id     = oci_core_subnet.poc_compute.id
@@ -33,7 +33,7 @@ resource "oci_dns_resolver_endpoint" "poc_listener" {
 
 resource "oci_dns_resolver_endpoint" "poc_forwarder" {
   resolver_id   = data.oci_core_vcn_dns_resolver_association.poc.dns_resolver_id
-  name          = "poc-forwarder"
+  name          = "poc_forwarder"
   is_forwarding = true
   is_listening  = false
   subnet_id     = oci_core_subnet.poc_compute.id
@@ -46,7 +46,7 @@ resource "oci_dns_resolver_endpoint" "poc_forwarder" {
 
 resource "oci_dns_resolver_endpoint" "dev_listener" {
   resolver_id   = data.oci_core_vcn_dns_resolver_association.dev.dns_resolver_id
-  name          = "dev-listener"
+  name          = "dev_listener"
   is_forwarding = false
   is_listening  = true
   subnet_id     = oci_core_subnet.dev_compute.id
@@ -59,7 +59,7 @@ resource "oci_dns_resolver_endpoint" "dev_listener" {
 
 resource "oci_dns_resolver_endpoint" "dev_forwarder" {
   resolver_id   = data.oci_core_vcn_dns_resolver_association.dev.dns_resolver_id
-  name          = "dev-forwarder"
+  name          = "dev_forwarder"
   is_forwarding = true
   is_listening  = false
   subnet_id     = oci_core_subnet.dev_compute.id
