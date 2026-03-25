@@ -42,9 +42,9 @@ resource "oci_core_security_list" "oac_pac" {
 
   # Ingress: Return traffic from ADB-S
   ingress_security_rules {
-    source    = var.adb_subnet_cidr
-    protocol  = "6"
-    stateless = false
+    source      = var.adb_subnet_cidr
+    protocol    = "6"
+    stateless   = false
     description = "Return traffic from ADB-S subnet"
   }
 }
@@ -59,9 +59,9 @@ resource "oci_core_security_list" "adb_private" {
 
   # Ingress: From OAC PAC (mTLS/TLS)
   ingress_security_rules {
-    source    = var.oac_pac_subnet_cidr
-    protocol  = "6"
-    stateless = false
+    source      = var.oac_pac_subnet_cidr
+    protocol    = "6"
+    stateless   = false
     description = "From OAC PAC - database listener"
 
     tcp_options {
@@ -72,9 +72,9 @@ resource "oci_core_security_list" "adb_private" {
 
   # Ingress: From OAC PAC (HTTPS)
   ingress_security_rules {
-    source    = var.oac_pac_subnet_cidr
-    protocol  = "6"
-    stateless = false
+    source      = var.oac_pac_subnet_cidr
+    protocol    = "6"
+    stateless   = false
     description = "From OAC PAC - HTTPS/REST"
 
     tcp_options {
@@ -85,9 +85,9 @@ resource "oci_core_security_list" "adb_private" {
 
   # Ingress: From POC Compute subnet (Bastion port-forwarding to Database Actions)
   ingress_security_rules {
-    source    = var.poc_compute_subnet_cidr
-    protocol  = "6"
-    stateless = false
+    source      = var.poc_compute_subnet_cidr
+    protocol    = "6"
+    stateless   = false
     description = "From Bastion/compute subnet - HTTPS (Database Actions)"
 
     tcp_options {
@@ -130,9 +130,9 @@ resource "oci_core_security_list" "dev_db" {
 
   # Ingress: From ADB-S via LPG
   ingress_security_rules {
-    source    = var.adb_subnet_cidr
-    protocol  = "6"
-    stateless = false
+    source      = var.adb_subnet_cidr
+    protocol    = "6"
+    stateless   = false
     description = "From ADB-S subnet via LPG - DB listener"
 
     tcp_options {
@@ -143,9 +143,9 @@ resource "oci_core_security_list" "dev_db" {
 
   # Ingress: SSH for DBCS administration (from POC VCN only)
   ingress_security_rules {
-    source    = var.poc_vcn_cidr
-    protocol  = "6"
-    stateless = false
+    source      = var.poc_vcn_cidr
+    protocol    = "6"
+    stateless   = false
     description = "SSH from POC VCN for DBCS admin"
 
     tcp_options {
@@ -191,9 +191,9 @@ resource "oci_core_security_list" "poc_compute" {
 
   # Ingress: SSH from Dev VCN
   ingress_security_rules {
-    source    = var.dev_vcn_cidr
-    protocol  = "6"
-    stateless = false
+    source      = var.dev_vcn_cidr
+    protocol    = "6"
+    stateless   = false
     description = "SSH from Dev VCN via LPG"
 
     tcp_options {
@@ -204,9 +204,9 @@ resource "oci_core_security_list" "poc_compute" {
 
   # Ingress: SSH within POC VCN
   ingress_security_rules {
-    source    = var.poc_vcn_cidr
-    protocol  = "6"
-    stateless = false
+    source      = var.poc_vcn_cidr
+    protocol    = "6"
+    stateless   = false
     description = "SSH within POC VCN"
 
     tcp_options {
@@ -215,19 +215,32 @@ resource "oci_core_security_list" "poc_compute" {
     }
   }
 
+  # Ingress: DNS from Dev VCN (cross-VCN resolver forwarding via LPG)
+  ingress_security_rules {
+    source      = var.dev_vcn_cidr
+    protocol    = "17"
+    stateless   = false
+    description = "DNS from Dev VCN resolver via LPG"
+
+    udp_options {
+      min = 53
+      max = 53
+    }
+  }
+
   # Ingress: ICMP from Dev VCN (ping/traceroute)
   ingress_security_rules {
-    source    = var.dev_vcn_cidr
-    protocol  = "1"
-    stateless = false
+    source      = var.dev_vcn_cidr
+    protocol    = "1"
+    stateless   = false
     description = "ICMP from Dev VCN via LPG"
   }
 
   # Ingress: ICMP within POC VCN
   ingress_security_rules {
-    source    = var.poc_vcn_cidr
-    protocol  = "1"
-    stateless = false
+    source      = var.poc_vcn_cidr
+    protocol    = "1"
+    stateless   = false
     description = "ICMP within POC VCN"
   }
 
@@ -258,9 +271,9 @@ resource "oci_core_security_list" "dev_compute" {
 
   # Ingress: SSH from POC VCN
   ingress_security_rules {
-    source    = var.poc_vcn_cidr
-    protocol  = "6"
-    stateless = false
+    source      = var.poc_vcn_cidr
+    protocol    = "6"
+    stateless   = false
     description = "SSH from POC VCN via LPG"
 
     tcp_options {
@@ -271,9 +284,9 @@ resource "oci_core_security_list" "dev_compute" {
 
   # Ingress: SSH within Dev VCN
   ingress_security_rules {
-    source    = var.dev_vcn_cidr
-    protocol  = "6"
-    stateless = false
+    source      = var.dev_vcn_cidr
+    protocol    = "6"
+    stateless   = false
     description = "SSH within Dev VCN"
 
     tcp_options {
@@ -282,19 +295,32 @@ resource "oci_core_security_list" "dev_compute" {
     }
   }
 
+  # Ingress: DNS from POC VCN (cross-VCN resolver forwarding via LPG)
+  ingress_security_rules {
+    source      = var.poc_vcn_cidr
+    protocol    = "17"
+    stateless   = false
+    description = "DNS from POC VCN resolver via LPG"
+
+    udp_options {
+      min = 53
+      max = 53
+    }
+  }
+
   # Ingress: ICMP from POC VCN (ping/traceroute)
   ingress_security_rules {
-    source    = var.poc_vcn_cidr
-    protocol  = "1"
-    stateless = false
+    source      = var.poc_vcn_cidr
+    protocol    = "1"
+    stateless   = false
     description = "ICMP from POC VCN via LPG"
   }
 
   # Ingress: ICMP within Dev VCN
   ingress_security_rules {
-    source    = var.dev_vcn_cidr
-    protocol  = "1"
-    stateless = false
+    source      = var.dev_vcn_cidr
+    protocol    = "1"
+    stateless   = false
     description = "ICMP within Dev VCN"
   }
 

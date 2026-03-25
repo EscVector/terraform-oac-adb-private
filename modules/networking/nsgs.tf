@@ -79,6 +79,23 @@ resource "oci_core_network_security_group_security_rule" "adb_egress_dev_dbcs" {
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "adb_egress_dns" {
+  network_security_group_id = oci_core_network_security_group.adb_private.id
+  direction                 = "EGRESS"
+  protocol                  = "17"
+  destination               = "169.254.169.254/32"
+  destination_type          = "CIDR_BLOCK"
+  stateless                 = false
+  description               = "DNS queries to VCN resolver"
+
+  udp_options {
+    destination_port_range {
+      min = 53
+      max = 53
+    }
+  }
+}
+
 # ─── NSG: OAC PAC ────────────────────────────────────────────────────────────
 
 resource "oci_core_network_security_group" "oac_pac" {

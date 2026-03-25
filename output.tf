@@ -93,3 +93,25 @@ output "bastion_id" {
   description = "OCID of the POC bastion"
   value       = module.compute.bastion_id
 }
+
+# ─── Databases ──────────────────────────────────────────────────────────────
+
+output "adb_id" {
+  description = "OCID of the Autonomous Database"
+  value       = module.database.adb_id
+}
+
+output "adb_private_endpoint_ip" {
+  description = "Private endpoint IP of the ADB"
+  value       = module.database.adb_private_endpoint_ip
+}
+
+output "adb_connection_strings" {
+  description = "ADB connection strings"
+  value       = module.database.adb_connection_strings
+}
+
+output "dbsystem_id" {
+  description = "OCID of the Dev DB System"
+  value       = module.database.dbsystem_id
+}

@@ -64,10 +64,10 @@ module "compute" {
   poc_compute_subnet_id = module.networking.poc_compute_subnet_id
   dev_compute_subnet_id = module.networking.dev_compute_subnet_id
 
-  instance_shape              = var.instance_shape
-  instance_shape_ocpus        = var.instance_shape_ocpus
+  instance_shape               = var.instance_shape
+  instance_shape_ocpus         = var.instance_shape_ocpus
   instance_shape_memory_in_gbs = var.instance_shape_memory_in_gbs
-  instance_image_ocid         = var.instance_image_ocid
+  instance_image_ocid          = var.instance_image_ocid
 
   bastion_client_cidr_allow_list = var.bastion_client_cidr_allow_list
   bastion_max_session_ttl        = var.bastion_max_session_ttl
@@ -77,5 +77,53 @@ module "compute" {
   depends_on = [module.networking]
 }
 
-/* 
-*/
+# ═══════════════════════════════════════════════════════════════════════════════
+# 4. DATABASES
+# ADB-S (POC) + Oracle Base Database DB System (Dev)
+# Both created by hand and imported into Terraform state.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+module "database" {
+  source = "./modules/database"
+
+  poc_compartment_ocid = var.poc_compartment_ocid
+  dev_compartment_ocid = var.dev_compartment_ocid
+
+  # ADB-S (POC)
+  adb_display_name             = var.adb_display_name
+  adb_db_name                  = var.adb_db_name
+  adb_db_workload              = var.adb_db_workload
+  adb_db_version               = var.adb_db_version
+  adb_cpu_core_count           = var.adb_cpu_core_count
+  adb_data_storage_size_in_tbs = var.adb_data_storage_size_in_tbs
+  adb_admin_password           = var.adb_admin_password
+  adb_is_mtls_required         = var.adb_is_mtls_required
+  adb_license_model            = var.adb_license_model
+  adb_is_auto_scaling_enabled  = var.adb_is_auto_scaling_enabled
+  adb_subnet_id                = module.networking.adb_subnet_id
+  adb_nsg_ids                  = [module.networking.nsg_adb_private_id]
+
+  # Oracle Base Database (Dev)
+  dbsystem_display_name            = var.dbsystem_display_name
+  dbsystem_shape                   = var.dbsystem_shape
+  dbsystem_cpu_core_count          = var.dbsystem_cpu_core_count
+  dbsystem_node_count              = var.dbsystem_node_count
+  dbsystem_db_edition              = var.dbsystem_db_edition
+  dbsystem_license_model           = var.dbsystem_license_model
+  dbsystem_availability_domain     = local.ad_name
+  dbsystem_subnet_id               = module.networking.dev_db_subnet_id
+  dbsystem_ssh_public_keys         = [module.compute.ssh_public_key_openssh]
+  dbsystem_hostname                = var.dbsystem_hostname
+  dbsystem_data_storage_size_in_gb = var.dbsystem_data_storage_size_in_gb
+  dbsystem_storage_management      = var.dbsystem_storage_management
+  dbsystem_db_name                 = var.dbsystem_db_name
+  dbsystem_db_version              = var.dbsystem_db_version
+  dbsystem_pdb_name                = var.dbsystem_pdb_name
+  dbsystem_admin_password          = var.dbsystem_admin_password
+  dbsystem_db_home_display_name    = var.dbsystem_db_home_display_name
+  dbsystem_auto_backup_enabled     = var.dbsystem_auto_backup_enabled
+
+  freeform_tags = var.freeform_tags
+
+  depends_on = [module.networking]
+}
